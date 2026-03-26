@@ -35,7 +35,7 @@ public class LoginTest extends BaseTest {
         LoginPage loginPage = new LoginPage();
         MyHealthPage myHealthPage = new MyHealthPage();
 
-        // First login to the app
+        // First login to the app/
         loginPage.loginWithPin("9594260325", "111111");
 
         // Wait for home screen to load
