@@ -58,7 +58,7 @@ public class BasicInfoTest extends BaseTest {
 
         WebDriverWait wait = new WebDriverWait(DriverManager.driver, Duration.ofSeconds(30));
         wait.until(ExpectedConditions.presenceOfElementLocated(AppiumBy.xpath("//*[contains(@text,'Home')]")));
-
+        //test
         myHealthPage.navigateToMyHealth();
         myHealthPage.navigateToBasicInfo();
         Thread.sleep(3000);
