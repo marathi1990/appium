@@ -1,0 +1,46 @@
+{
+  "validData": [
+    {
+      "mobile": "9876543210",
+      "email": "test@gmail.com"
+    },
+    {
+      "mobile": "9123456789",
+      "email": "user123@yahoo.com"
+    },
+    {
+      "mobile": "8765432109",
+      "email": "testing@company.com"
+    },
+    {
+      "mobile": "7654321098",
+      "email": "lastname@gmail.com"
+    },
+    {
+      "mobile": "9988776655",
+      "email": "demo@outlook.com"
+    }
+  ],
+  "invalidData": [
+    {
+      "mobile": "12345",
+      "email": "test@gmail"
+    },
+    {
+      "mobile": "123456789012",
+      "email": "yahoo.com"
+    },
+    {
+      "mobile": "98abcd1234",
+      "email": "company.co.in"
+    },
+    {
+      "mobile": "9876543210",
+      "email": "testgmail"
+    },
+    {
+      "mobile": "9876543210",
+      "email": "test@gmail..com"
+    }
+  ]
+}

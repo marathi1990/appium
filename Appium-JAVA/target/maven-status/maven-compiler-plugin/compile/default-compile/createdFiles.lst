@@ -1,0 +1,4 @@
+pages\BasicInfoPage.class
+pages\MyHealthPage.class
+pages\LoginPage.class
+utils\DriverManager.class

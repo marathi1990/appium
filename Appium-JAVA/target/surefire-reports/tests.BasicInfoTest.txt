@@ -1,0 +1,39 @@
+-------------------------------------------------------------------------------
+Test set: tests.BasicInfoTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.511 s <<< FAILURE! -- in tests.BasicInfoTest
+tests.BasicInfoTest.verifyBasicInfoFieldsEditabilityTest -- Time elapsed: 0.487 s <<< ERROR!
+org.openqa.selenium.SessionNotCreatedException: 
+Could not start a new session. Possible causes are invalid address of the remote server or browser start-up failure. 
+Host info: host: 'DESKTOP-M2I2JJ6', ip: '172.16.0.151'
+	at org.openqa.selenium.remote.RemoteWebDriver.execute(RemoteWebDriver.java:563)
+	at io.appium.java_client.AppiumDriver.startSession(AppiumDriver.java:270)
+	at org.openqa.selenium.remote.RemoteWebDriver.<init>(RemoteWebDriver.java:174)
+	at io.appium.java_client.AppiumDriver.<init>(AppiumDriver.java:91)
+	at io.appium.java_client.AppiumDriver.<init>(AppiumDriver.java:103)
+	at io.appium.java_client.android.AndroidDriver.<init>(AndroidDriver.java:109)
+	at utils.DriverManager.initDriver(DriverManager.java:23)
+	at base.BaseTest.setUp(BaseTest.java:11)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+Caused by: org.openqa.selenium.WebDriverException: Connection refused: getsockopt
+Build info: version: '4.27.0', revision: 'd6e718d134'
+System info: os.name: 'Windows 11', os.arch: 'amd64', os.version: '10.0', java.version: '26'
+Driver info: driver.version: AndroidDriver
+	at io.appium.java_client.remote.AppiumCommandExecutor.lambda$execute$2(AppiumCommandExecutor.java:248)
+	at java.base/java.util.Optional.orElseGet(Optional.java:368)
+	at io.appium.java_client.remote.AppiumCommandExecutor.execute(AppiumCommandExecutor.java:248)
+	at org.openqa.selenium.remote.RemoteWebDriver.execute(RemoteWebDriver.java:545)
+	... 10 more
+Caused by: java.net.ConnectException: Connection refused: getsockopt
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method)
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:642)
+	at java.base/sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:1043)
+	at java.net.http/jdk.internal.net.http.PlainHttpConnection$ConnectEvent.handle(PlainHttpConnection.java:134)
+	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.handleEvent(HttpClientImpl.java:1610)
+	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.lambda$run$3(HttpClientImpl.java:1555)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.run(HttpClientImpl.java:1555)
+	at java.base/java.lang.VirtualThread.run(VirtualThread.java:475)
+

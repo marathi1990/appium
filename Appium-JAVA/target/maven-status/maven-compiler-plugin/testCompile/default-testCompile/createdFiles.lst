@@ -1,0 +1,5 @@
+base\BaseTest.class
+tests\BasicInfoTest.class
+tests\BasicInfoTest$BasicInfoEntry.class
+tests\BasicInfoTest$BasicInfoPayload.class
+tests\LoginTest.class
