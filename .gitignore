@@ -1,0 +1,19 @@
+# Maven build output
+target/
+
+# Firebase service account - NEVER commit real credentials
+src/test/resources/firebase-service-account.json
+
+# IDE files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# APK files - too large for GitHub (>100MB)
+*.apk

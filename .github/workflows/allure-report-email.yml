@@ -1,0 +1,222 @@
+name: Test & Email Allure Report
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-and-report:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Run Tests with Maven
+      run: mvn clean test
+      continue-on-error: true
+
+    - name: Generate Allure Report
+      run: mvn allure:report
+      if: always()
+
+    - name: Verify Allure Report Generated
+      run: |
+        echo "Checking for Allure report..."
+        if [ -d "./target/site/allure-maven-plugin/" ]; then
+          echo "✅ Allure report found!"
+          ls -la ./target/site/allure-maven-plugin/
+        else
+          echo "⚠️  Allure report not found at expected location"
+          echo "Searching for report directories..."
+          find ./target -type d -name "*allure*" 2>/dev/null || echo "No allure directories found"
+        fi
+      shell: bash
+
+    - name: Upload Allure Report as Artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: allure-report
+        path: ./target/site/allure-maven-plugin/
+        retention-days: 30
+
+    - name: Collect All Log Files
+      if: always()
+      run: |
+        mkdir -p logs-archive
+        cp -r ./target/site/allure-maven-plugin/ logs-archive/allure-report || true
+        cp -r ./target/surefire-reports/ logs-archive/test-reports || true
+        find . -name "*.log" -type f -exec cp {} logs-archive/ \; 2>/dev/null || true
+        echo "Logs collected successfully"
+        ls -lah logs-archive/
+
+    - name: Create Logs Zip Archive
+      if: always()
+      run: |
+        if [ -d "logs-archive" ] && [ "$(ls -A logs-archive)" ]; then
+          cd logs-archive
+          zip -r ../test-logs-${{ github.run_number }}.zip . -q
+          cd ..
+          echo "✅ ZIP archive created successfully"
+          ls -lh test-logs-*.zip
+        else
+          echo "⚠️  No logs to archive"
+          mkdir -p logs-archive
+          echo "Report failed or incomplete" > logs-archive/ERROR.txt
+          cd logs-archive
+          zip -r ../test-logs-${{ github.run_number }}.zip . -q
+          cd ..
+        fi
+      shell: bash
+
+    - name: Prepare Report Summary
+      if: always()
+      run: |
+        mkdir -p report-summary
+        if [ -d "./target/site/allure-maven-plugin/" ]; then
+          cp -r ./target/site/allure-maven-plugin/* report-summary/ || true
+          echo "✅ Report prepared successfully"
+        else
+          echo "⚠️  Report directory not found"
+          echo "Report generation may have failed" > report-summary/ERROR.txt
+        fi
+
+    - name: Extract Test Summary
+      if: always()
+      run: |
+        if [ -f "./target/surefire-reports/index.xml" ]; then
+          echo "TEST_SUMMARY=Found" >> $GITHUB_ENV
+        else
+          echo "TEST_SUMMARY=No tests run" >> $GITHUB_ENV
+        fi
+      shell: bash
+
+    - name: Verify ZIP Archive
+      if: always()
+      run: |
+        if [ -f "test-logs-${{ github.run_number }}.zip" ]; then
+          echo "✅ ZIP file ready for email"
+          ls -lh test-logs-${{ github.run_number }}.zip
+        else
+          echo "⚠️  ZIP file not found, creating minimal archive..."
+          mkdir -p minimal-archive
+          echo "Test run ${{ github.run_number }} - Report may be incomplete" > minimal-archive/INFO.txt
+          cd minimal-archive
+          zip -r ../test-logs-${{ github.run_number }}.zip . -q
+          cd ..
+        fi
+      shell: bash
+
+    - name: Send Allure Report via Email with Logs
+      if: always()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.GMAIL_USERNAME }}
+        password: ${{ secrets.GMAIL_PASSWORD }}
+        subject: "✅ Allure Test Report - ${{ github.repository }} - Run #${{ github.run_number }}"
+        to: ${{ secrets.EMAIL_RECIPIENT }}
+        from: ${{ secrets.GMAIL_USERNAME }}
+        attachments: ${{ github.workspace }}/test-logs-${{ github.run_number }}.zip
+        body: |
+          Hi,
+
+          Test execution completed for branch: ${{ github.ref_name }}
+
+          📋 EXECUTION DETAILS:
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+          Commit: ${{ github.event.head_commit.message }}
+          Author: ${{ github.actor }}
+          Run: #${{ github.run_number }}
+
+          🔗 LINKS:
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          CI/CD Pipeline: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          📦 ATTACHMENTS:
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          ✓ test-logs-${{ github.run_number }}.zip (Contains all logs and reports)
+            - Allure Report (HTML)
+            - Test Reports (XML)
+            - Log Files
+
+          HOW TO VIEW:
+          1. Download the attached ZIP file
+          2. Extract it to a folder
+          3. Open allure-report/index.html in your browser
+
+          ---
+          Automated Test Report System
+        html_body: |
+          <html>
+          <body style="font-family: Arial, sans-serif; color: #333;">
+            <h2 style="color: #0366d6;">✅ Test Execution Complete</h2>
+
+            <div style="background-color: #f6f8fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
+              <h3>📋 Execution Details</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid #e1e4e8;">
+                  <td style="padding: 8px; font-weight: bold;">Repository:</td>
+                  <td style="padding: 8px;">${{ github.repository }}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e1e4e8;">
+                  <td style="padding: 8px; font-weight: bold;">Branch:</td>
+                  <td style="padding: 8px;">${{ github.ref_name }}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e1e4e8;">
+                  <td style="padding: 8px; font-weight: bold;">Run Number:</td>
+                  <td style="padding: 8px;">#${{ github.run_number }}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e1e4e8;">
+                  <td style="padding: 8px; font-weight: bold;">Author:</td>
+                  <td style="padding: 8px;">${{ github.actor }}</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #ffc107;">
+              <h3 style="margin-top: 0;">📦 Attachments Included</h3>
+              <ul>
+                <li><strong>Allure Report</strong> - Interactive HTML test report with graphs and details</li>
+                <li><strong>Test Reports</strong> - XML test results from Maven Surefire</li>
+                <li><strong>Log Files</strong> - Application and build logs</li>
+              </ul>
+            </div>
+
+            <div style="background-color: #e8f4f8; padding: 15px; border-radius: 6px; margin: 15px 0;">
+              <h3>🚀 How to View the Report</h3>
+              <ol>
+                <li>Download the attached <code>test-logs-${{ github.run_number }}.zip</code></li>
+                <li>Extract the ZIP file to a folder</li>
+                <li>Open <code>allure-report/index.html</code> in your web browser</li>
+              </ol>
+            </div>
+
+            <div style="background-color: #f6f8fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
+              <h3>🔗 Quick Links</h3>
+              <ul>
+                <li><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Full Workflow Run</a></li>
+                <li><a href="${{ github.event.head_commit.url }}">View Code Changes</a></li>
+                <li><a href="${{ github.server_url }}/${{ github.repository }}/actions">View All Runs</a></li>
+              </ul>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e1e4e8; margin: 20px 0;">
+            <footer style="color: #999; font-size: 12px;">
+              <p>This is an automated email from the CI/CD pipeline. Do not reply to this email.</p>
+              <p>Report generated at: $(date)</p>
+            </footer>
+          </body>
+          </html>
