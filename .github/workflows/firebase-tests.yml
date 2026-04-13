@@ -429,13 +429,14 @@ jobs:
           cp -r merged-allure-results/* target/allure-results/ 2>/dev/null || true
 
       - name: Generate Allure Report
-        run: mvn allure:report
-        continue-on-error: true
+        run: |
+          npm install -g allure-commandline
+          allure generate target/allure-results -o allure-report --clean
 
       - name: Package report and results
         run: |
           mkdir -p logs-archive
-          cp -r target/site/allure-maven-plugin/ logs-archive/allure-report 2>/dev/null || true
+          cp -r allure-report/ logs-archive/allure-report 2>/dev/null || true
           cp -r target/surefire-reports/ logs-archive/test-reports 2>/dev/null || true
           cd logs-archive
           zip -r ../firebase-test-logs-${{ github.run_number }}.zip . -q
@@ -447,7 +448,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: firebase-allure-report
-          path: target/site/allure-maven-plugin/
+          path: allure-report/
           retention-days: 30
 
       - name: Send Firebase Test Report via Email

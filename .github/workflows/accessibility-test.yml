@@ -122,6 +122,20 @@ jobs:
           path: target/allure-results
           retention-days: 14
 
+      - name: Generate Allure Report
+        if: always()
+        run: |
+          npm install -g allure-commandline
+          allure generate target/allure-results -o allure-report --clean
+
+      - name: Upload Allure HTML Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-html-report-accessibility
+          path: allure-report/
+          retention-days: 14
+
       - name: Upload Surefire reports
         uses: actions/upload-artifact@v4
         if: always()
