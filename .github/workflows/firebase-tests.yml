@@ -1,11 +1,18 @@
 name: Firebase Integration Tests
 
 on:
+  # ── Scenario 1: Code push / PR ──────────────────────────────────
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+
+  # ── Scenario 2: New Firebase build detected by the monitor ──────
+  # Fired by firebase-build-monitor.yml via repository_dispatch when
+  # a new APK appears in Firebase App Distribution (no commit needed).
+  repository_dispatch:
+    types: [ firebase-new-build ]
 
 jobs:
 
@@ -459,20 +466,21 @@ jobs:
           server_port: 465
           username: ${{ secrets.GMAIL_USERNAME }}
           password: ${{ secrets.GMAIL_PASSWORD }}
-          subject: "🔥 Firebase Test Report - ${{ github.repository }} - Run #${{ github.run_number }}"
+          subject: "🔥 Firebase Test Report [${{ github.event_name == 'repository_dispatch' && 'New Firebase Build' || github.event_name }}] - ${{ github.repository }} - Run #${{ github.run_number }}"
           to: ${{ secrets.EMAIL_RECIPIENT }}
           from: ${{ secrets.GMAIL_USERNAME }}
           attachments: ${{ github.workspace }}/firebase-test-logs-${{ github.run_number }}.zip
           body: |
             Hi,
 
-            Firebase integration test execution completed for branch: ${{ github.ref_name }}
+            Firebase integration test execution completed.
 
             📋 EXECUTION DETAILS:
             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             Repository: ${{ github.repository }}
+            Trigger:    ${{ github.event_name == 'repository_dispatch' && 'New Firebase Build (auto-detected)' || github.event_name }}
             Branch:     ${{ github.ref_name }}
-            Commit:     ${{ github.event.head_commit.message }}
+            ${{ github.event_name == 'repository_dispatch' && format('Firebase Build: v{0} (build {1})', github.event.client_payload.display_version, github.event.client_payload.build_version) || format('Commit: {0}', github.event.head_commit.message) }}
             Author:     ${{ github.actor }}
             Run:        #${{ github.run_number }}
 
@@ -514,9 +522,14 @@ jobs:
                     <td style="padding: 8px;">${{ github.repository }}</td>
                   </tr>
                   <tr style="border-bottom: 1px solid #e1e4e8;">
+                    <td style="padding: 8px; font-weight: bold;">Trigger:</td>
+                    <td style="padding: 8px;">${{ github.event_name == 'repository_dispatch' && 'New Firebase Build (auto-detected by monitor)' || github.event_name }}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #e1e4e8;">
                     <td style="padding: 8px; font-weight: bold;">Branch:</td>
                     <td style="padding: 8px;">${{ github.ref_name }}</td>
                   </tr>
+                  ${{ github.event_name == 'repository_dispatch' && format('<tr style="border-bottom: 1px solid #e1e4e8;"><td style="padding: 8px; font-weight: bold;">Firebase Build:</td><td style="padding: 8px;">v{0} (build {1})</td></tr>', github.event.client_payload.display_version, github.event.client_payload.build_version) || '' }}
                   <tr style="border-bottom: 1px solid #e1e4e8;">
                     <td style="padding: 8px; font-weight: bold;">Run Number:</td>
                     <td style="padding: 8px;">#${{ github.run_number }}</td>

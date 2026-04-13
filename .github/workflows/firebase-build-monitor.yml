@@ -1,0 +1,186 @@
+name: Firebase Build Monitor
+
+# ─────────────────────────────────────────────────────────────────
+# PURPOSE
+# ─────────────────────────────────────────────────────────────────
+# Polls Firebase App Distribution every 15 minutes.
+# When a new APK build is detected it fires a repository_dispatch
+# event ("firebase-new-build") that triggers firebase-tests.yml —
+# so tests run automatically without any git commit.
+#
+# REQUIRED SECRETS
+# ─────────────────────────────────────────────────────────────────
+#   FIREBASE_SERVICE_ACCOUNT_JSON  – Google service account key JSON
+#   FIREBASE_APP_ID                – Firebase App ID (1:NUM:android:HASH)
+#   GH_PAT                         – GitHub Personal Access Token with
+#                                    repo scope (GITHUB_TOKEN cannot
+#                                    trigger other workflows via dispatch)
+# ─────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'    # Every 5 minutes
+  workflow_dispatch:
+    inputs:
+      force_trigger:
+        description: 'Force-trigger tests even if no new build was detected'
+        type: boolean
+        default: false
+
+jobs:
+  check-new-build:
+    name: Check Firebase App Distribution for New Build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      actions: write   # required for cache save/restore
+
+    steps:
+      # ── 1. Authenticate with Google Cloud using the service account ──
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # ── 2. Obtain a short-lived OAuth2 access token ──
+      - name: Get OAuth2 access token
+        id: token
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          echo "::add-mask::$TOKEN"
+          echo "access_token=$TOKEN" >> $GITHUB_OUTPUT
+
+      # ── 3. Query Firebase App Distribution for the latest release ──
+      - name: Query Firebase App Distribution for latest release
+        id: release
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+        run: |
+          # App ID format: 1:PROJECT_NUMBER:android:HASH
+          PROJECT_NUM=$(echo "$FIREBASE_APP_ID" | cut -d':' -f2)
+
+          echo "Querying Firebase App Distribution..."
+          echo "  App ID        : $FIREBASE_APP_ID"
+          echo "  Project number: $PROJECT_NUM"
+
+          RESPONSE=$(curl -sf \
+            -H "Authorization: Bearer ${{ steps.token.outputs.access_token }}" \
+            "https://firebaseappdistribution.googleapis.com/v1/projects/${PROJECT_NUM}/apps/${FIREBASE_APP_ID}/releases?orderBy=createTime+desc&pageSize=1") || {
+            echo "::warning::Firebase App Distribution API call failed. Skipping this poll cycle."
+            echo "release_name=none" >> $GITHUB_OUTPUT
+            echo "build_version=0"   >> $GITHUB_OUTPUT
+            echo "display_version=unknown" >> $GITHUB_OUTPUT
+            exit 0
+          }
+
+          RELEASE_NAME=$(echo    "$RESPONSE" | jq -r '.releases[0].name         // "none"')
+          BUILD_VERSION=$(echo   "$RESPONSE" | jq -r '.releases[0].buildVersion  // "0"')
+          DISPLAY_VERSION=$(echo "$RESPONSE" | jq -r '.releases[0].displayVersion // "unknown"')
+          CREATE_TIME=$(echo     "$RESPONSE" | jq -r '.releases[0].createTime    // "unknown"')
+
+          echo "  Latest release  : $RELEASE_NAME"
+          echo "  Display version : $DISPLAY_VERSION"
+          echo "  Build version   : $BUILD_VERSION"
+          echo "  Created at      : $CREATE_TIME"
+
+          echo "release_name=$RELEASE_NAME"       >> $GITHUB_OUTPUT
+          echo "build_version=$BUILD_VERSION"     >> $GITHUB_OUTPUT
+          echo "display_version=$DISPLAY_VERSION" >> $GITHUB_OUTPUT
+          echo "create_time=$CREATE_TIME"         >> $GITHUB_OUTPUT
+
+      # ── 4. Restore cache keyed on the release name ──
+      #    Cache HIT  → same release as last run → no new build
+      #    Cache MISS → release name has changed  → new build found
+      - name: Restore last-known-release cache
+        id: cache-restore
+        if: steps.release.outputs.release_name != 'none'
+        uses: actions/cache/restore@v4
+        with:
+          path: .firebase-last-release
+          key: firebase-release-${{ steps.release.outputs.release_name }}
+          restore-keys: firebase-release-
+
+      # ── 5. Decide whether a new build was detected ──
+      - name: Determine if new build is available
+        id: new-build
+        run: |
+          RELEASE="${{ steps.release.outputs.release_name }}"
+          CACHE_HIT="${{ steps.cache-restore.outputs.cache-hit }}"
+          FORCE="${{ github.event.inputs.force_trigger }}"
+
+          if [ "$RELEASE" = "none" ]; then
+            echo "No releases found in Firebase App Distribution. Skipping."
+            echo "is_new=false" >> $GITHUB_OUTPUT
+
+          elif [ "$CACHE_HIT" = "true" ] && [ "$FORCE" != "true" ]; then
+            echo "Build unchanged since last check ($RELEASE). Nothing to do."
+            echo "is_new=false" >> $GITHUB_OUTPUT
+
+          else
+            if [ "$FORCE" = "true" ]; then
+              echo "Force-trigger requested by user."
+            else
+              echo "New build detected: $RELEASE"
+              echo "  Version : v${{ steps.release.outputs.display_version }}"
+              echo "  Build # : ${{ steps.release.outputs.build_version }}"
+            fi
+            echo "$RELEASE" > .firebase-last-release
+            echo "is_new=true" >> $GITHUB_OUTPUT
+          fi
+
+      # ── 6. Persist the new release name in cache ──
+      - name: Save current release to cache
+        if: steps.new-build.outputs.is_new == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .firebase-last-release
+          key: firebase-release-${{ steps.release.outputs.release_name }}
+
+      # ── 7. Fire repository_dispatch to trigger firebase-tests.yml ──
+      #    NOTE: GITHUB_TOKEN cannot trigger downstream workflows;
+      #          GH_PAT (repo scope) is required here.
+      - name: Dispatch firebase-new-build event to trigger tests
+        if: steps.new-build.outputs.is_new == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GH_PAT }}
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              event_type: 'firebase-new-build',
+              client_payload: {
+                release_name:    '${{ steps.release.outputs.release_name }}',
+                build_version:   '${{ steps.release.outputs.build_version }}',
+                display_version: '${{ steps.release.outputs.display_version }}',
+                create_time:     '${{ steps.release.outputs.create_time }}',
+                triggered_by:    'firebase-build-monitor',
+                monitor_run_id:  String(context.runId)
+              }
+            });
+            console.log('Dispatched firebase-new-build event');
+            console.log(`  Release : ${{ steps.release.outputs.release_name }}`);
+            console.log(`  Version : v${{ steps.release.outputs.display_version }} (build ${{ steps.release.outputs.build_version }})`);
+
+      # ── 8. Write a job summary ──
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "### Firebase Build Monitor" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Latest Release | \`${{ steps.release.outputs.release_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | v${{ steps.release.outputs.display_version }} (build ${{ steps.release.outputs.build_version }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Created At | ${{ steps.release.outputs.create_time }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| New Build Detected | **${{ steps.new-build.outputs.is_new }}** |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.new-build.outputs.is_new }}" = "true" ]; then
+            echo "| Action | Tests triggered via \`repository_dispatch\` |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Action | No action — same build as previous check |" >> $GITHUB_STEP_SUMMARY
+          fi
