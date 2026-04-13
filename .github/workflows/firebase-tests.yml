@@ -26,6 +26,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -43,17 +44,36 @@ jobs:
           npm install -g appium@3.2.0
           appium driver install uiautomator2
 
-      - name: Start Appium server
-        run: appium --port 4723 &
-        shell: bash
-
       - name: Enable KVM for Android emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Launch Android emulator
+      - name: Start Appium server
+        run: |
+          appium --port 4723 --log-level info > /tmp/appium.log 2>&1 &
+          sleep 5
+        shell: bash
+
+      - name: Write Firebase service account JSON
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
+            exit 1
+          fi
+          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
+          echo "Firebase service account written successfully."
+        shell: bash
+
+      - name: Download APK from Firebase App Distribution
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      - name: Launch Android emulator and run Firebase Test 1
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 32
@@ -63,52 +83,16 @@ jobs:
           avd-name: test_avd
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: echo "Emulator started"
-
-      - name: Write Firebase service account JSON
+          script: |
+            echo "=== Emulator ready ==="
+            adb devices
+            echo "=== Running Firebase Test 1 ==="
+            mvn test -Dtest=FirebaseTest#verifyUserExistsInFirebaseAuthAfterLogin -DforkCount=0 -pl .
         env:
-          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$FIREBASE_SA_JSON" ]; then
-            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
-            echo "Go to: Settings → Secrets and variables → Actions → New repository secret"
-            exit 1
-          fi
-          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
-          echo "Firebase service account written successfully."
-        shell: bash
-
-      - name: Download APK from Firebase App Distribution
-        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
-
-      - name: Verify APK in app/ folder
-        run: |
-          echo "========================================"
-          echo "  APK INSTALLED FOR THIS RUN"
-          echo "========================================"
-          APK_FILE=$(ls app/*.apk 2>/dev/null | head -1)
-          if [ -z "$APK_FILE" ]; then
-            echo "ERROR: No APK found in app/ folder!"
-            exit 1
-          fi
-          APK_NAME=$(basename "$APK_FILE")
-          APK_SIZE=$(du -sh "$APK_FILE" | cut -f1)
-          APK_MD5=$(md5sum "$APK_FILE" | cut -d' ' -f1)
-          echo "  Name : $APK_NAME"
-          echo "  Path : $APK_FILE"
-          echo "  Size : $APK_SIZE"
-          echo "  MD5  : $APK_MD5"
-          echo "========================================"
-          echo "APK ready for testing"
-
-      - name: Run Firebase Test 1
-        env:
+          APPIUM_DEVICE_NAME: emulator-5554
+          APPIUM_PLATFORM_VERSION: "12"
+          APPIUM_SERVER_URL: http://127.0.0.1:4723
           FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-        run: |
-          mvn test \
-            -Dtest=FirebaseTest#verifyUserExistsInFirebaseAuthAfterLogin \
-            -DforkCount=0 \
-            -pl .
         continue-on-error: true
 
       - name: Upload Allure results
@@ -128,6 +112,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -145,16 +130,36 @@ jobs:
           npm install -g appium@3.2.0
           appium driver install uiautomator2
 
-      - name: Start Appium server
-        run: appium --port 4723 &
-
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Launch Android emulator
+      - name: Start Appium server
+        run: |
+          appium --port 4723 --log-level info > /tmp/appium.log 2>&1 &
+          sleep 5
+        shell: bash
+
+      - name: Write Firebase service account JSON
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
+            exit 1
+          fi
+          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
+          echo "Firebase service account written successfully."
+        shell: bash
+
+      - name: Download APK from Firebase App Distribution
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      - name: Launch Android emulator and run Firebase Test 2
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 32
@@ -164,52 +169,16 @@ jobs:
           avd-name: test_avd
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: echo "Emulator started"
-
-      - name: Write Firebase service account JSON
+          script: |
+            echo "=== Emulator ready ==="
+            adb devices
+            echo "=== Running Firebase Test 2 ==="
+            mvn test -Dtest=FirebaseTest#verifyFirestoreUserProfileExistsAfterLogin -DforkCount=0 -pl .
         env:
-          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$FIREBASE_SA_JSON" ]; then
-            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
-            echo "Go to: Settings → Secrets and variables → Actions → New repository secret"
-            exit 1
-          fi
-          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
-          echo "Firebase service account written successfully."
-        shell: bash
-
-      - name: Download APK from Firebase App Distribution
-        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
-
-      - name: Verify APK in app/ folder
-        run: |
-          echo "========================================"
-          echo "  APK INSTALLED FOR THIS RUN"
-          echo "========================================"
-          APK_FILE=$(ls app/*.apk 2>/dev/null | head -1)
-          if [ -z "$APK_FILE" ]; then
-            echo "ERROR: No APK found in app/ folder!"
-            exit 1
-          fi
-          APK_NAME=$(basename "$APK_FILE")
-          APK_SIZE=$(du -sh "$APK_FILE" | cut -f1)
-          APK_MD5=$(md5sum "$APK_FILE" | cut -d' ' -f1)
-          echo "  Name : $APK_NAME"
-          echo "  Path : $APK_FILE"
-          echo "  Size : $APK_SIZE"
-          echo "  MD5  : $APK_MD5"
-          echo "========================================"
-          echo "APK ready for testing"
-
-      - name: Run Firebase Test 2
-        env:
+          APPIUM_DEVICE_NAME: emulator-5554
+          APPIUM_PLATFORM_VERSION: "12"
+          APPIUM_SERVER_URL: http://127.0.0.1:4723
           FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-        run: |
-          mvn test \
-            -Dtest=FirebaseTest#verifyFirestoreUserProfileExistsAfterLogin \
-            -DforkCount=0 \
-            -pl .
         continue-on-error: true
 
       - name: Upload Allure results
@@ -229,6 +198,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -246,16 +216,36 @@ jobs:
           npm install -g appium@3.2.0
           appium driver install uiautomator2
 
-      - name: Start Appium server
-        run: appium --port 4723 &
-
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Launch Android emulator
+      - name: Start Appium server
+        run: |
+          appium --port 4723 --log-level info > /tmp/appium.log 2>&1 &
+          sleep 5
+        shell: bash
+
+      - name: Write Firebase service account JSON
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
+            exit 1
+          fi
+          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
+          echo "Firebase service account written successfully."
+        shell: bash
+
+      - name: Download APK from Firebase App Distribution
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      - name: Launch Android emulator and run Firebase Test 3
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 32
@@ -265,52 +255,16 @@ jobs:
           avd-name: test_avd
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: echo "Emulator started"
-
-      - name: Write Firebase service account JSON
+          script: |
+            echo "=== Emulator ready ==="
+            adb devices
+            echo "=== Running Firebase Test 3 ==="
+            mvn test -Dtest=FirebaseTest#verifyBasicInfoEmailSyncedToFirestore -DforkCount=0 -pl .
         env:
-          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$FIREBASE_SA_JSON" ]; then
-            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
-            echo "Go to: Settings → Secrets and variables → Actions → New repository secret"
-            exit 1
-          fi
-          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
-          echo "Firebase service account written successfully."
-        shell: bash
-
-      - name: Download APK from Firebase App Distribution
-        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
-
-      - name: Verify APK in app/ folder
-        run: |
-          echo "========================================"
-          echo "  APK INSTALLED FOR THIS RUN"
-          echo "========================================"
-          APK_FILE=$(ls app/*.apk 2>/dev/null | head -1)
-          if [ -z "$APK_FILE" ]; then
-            echo "ERROR: No APK found in app/ folder!"
-            exit 1
-          fi
-          APK_NAME=$(basename "$APK_FILE")
-          APK_SIZE=$(du -sh "$APK_FILE" | cut -f1)
-          APK_MD5=$(md5sum "$APK_FILE" | cut -d' ' -f1)
-          echo "  Name : $APK_NAME"
-          echo "  Path : $APK_FILE"
-          echo "  Size : $APK_SIZE"
-          echo "  MD5  : $APK_MD5"
-          echo "========================================"
-          echo "APK ready for testing"
-
-      - name: Run Firebase Test 3
-        env:
+          APPIUM_DEVICE_NAME: emulator-5554
+          APPIUM_PLATFORM_VERSION: "12"
+          APPIUM_SERVER_URL: http://127.0.0.1:4723
           FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-        run: |
-          mvn test \
-            -Dtest=FirebaseTest#verifyBasicInfoEmailSyncedToFirestore \
-            -DforkCount=0 \
-            -pl .
         continue-on-error: true
 
       - name: Upload Allure results
@@ -330,6 +284,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -347,16 +302,36 @@ jobs:
           npm install -g appium@3.2.0
           appium driver install uiautomator2
 
-      - name: Start Appium server
-        run: appium --port 4723 &
-
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Launch Android emulator
+      - name: Start Appium server
+        run: |
+          appium --port 4723 --log-level info > /tmp/appium.log 2>&1 &
+          sleep 5
+        shell: bash
+
+      - name: Write Firebase service account JSON
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
+            exit 1
+          fi
+          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
+          echo "Firebase service account written successfully."
+        shell: bash
+
+      - name: Download APK from Firebase App Distribution
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      - name: Launch Android emulator and run Firebase Test 4
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 32
@@ -366,52 +341,16 @@ jobs:
           avd-name: test_avd
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: echo "Emulator started"
-
-      - name: Write Firebase service account JSON
+          script: |
+            echo "=== Emulator ready ==="
+            adb devices
+            echo "=== Running Firebase Test 4 ==="
+            mvn test -Dtest=FirebaseTest#verifyReadOnlyFieldsMatchFirebaseData -DforkCount=0 -pl .
         env:
-          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$FIREBASE_SA_JSON" ]; then
-            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
-            echo "Go to: Settings → Secrets and variables → Actions → New repository secret"
-            exit 1
-          fi
-          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
-          echo "Firebase service account written successfully."
-        shell: bash
-
-      - name: Download APK from Firebase App Distribution
-        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
-
-      - name: Verify APK in app/ folder
-        run: |
-          echo "========================================"
-          echo "  APK INSTALLED FOR THIS RUN"
-          echo "========================================"
-          APK_FILE=$(ls app/*.apk 2>/dev/null | head -1)
-          if [ -z "$APK_FILE" ]; then
-            echo "ERROR: No APK found in app/ folder!"
-            exit 1
-          fi
-          APK_NAME=$(basename "$APK_FILE")
-          APK_SIZE=$(du -sh "$APK_FILE" | cut -f1)
-          APK_MD5=$(md5sum "$APK_FILE" | cut -d' ' -f1)
-          echo "  Name : $APK_NAME"
-          echo "  Path : $APK_FILE"
-          echo "  Size : $APK_SIZE"
-          echo "  MD5  : $APK_MD5"
-          echo "========================================"
-          echo "APK ready for testing"
-
-      - name: Run Firebase Test 4
-        env:
+          APPIUM_DEVICE_NAME: emulator-5554
+          APPIUM_PLATFORM_VERSION: "12"
+          APPIUM_SERVER_URL: http://127.0.0.1:4723
           FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-        run: |
-          mvn test \
-            -Dtest=FirebaseTest#verifyReadOnlyFieldsMatchFirebaseData \
-            -DforkCount=0 \
-            -pl .
         continue-on-error: true
 
       - name: Upload Allure results
@@ -431,6 +370,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -448,16 +388,36 @@ jobs:
           npm install -g appium@3.2.0
           appium driver install uiautomator2
 
-      - name: Start Appium server
-        run: appium --port 4723 &
-
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Launch Android emulator
+      - name: Start Appium server
+        run: |
+          appium --port 4723 --log-level info > /tmp/appium.log 2>&1 &
+          sleep 5
+        shell: bash
+
+      - name: Write Firebase service account JSON
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
+            exit 1
+          fi
+          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
+          echo "Firebase service account written successfully."
+        shell: bash
+
+      - name: Download APK from Firebase App Distribution
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      - name: Launch Android emulator and run Firebase Test 5
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 32
@@ -467,52 +427,16 @@ jobs:
           avd-name: test_avd
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: echo "Emulator started"
-
-      - name: Write Firebase service account JSON
+          script: |
+            echo "=== Emulator ready ==="
+            adb devices
+            echo "=== Running Firebase Test 5 ==="
+            mvn test -Dtest=FirebaseTest#verifyCustomFirebaseTokenCreation -DforkCount=0 -pl .
         env:
-          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$FIREBASE_SA_JSON" ]; then
-            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
-            echo "Go to: Settings → Secrets and variables → Actions → New repository secret"
-            exit 1
-          fi
-          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
-          echo "Firebase service account written successfully."
-        shell: bash
-
-      - name: Download APK from Firebase App Distribution
-        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
-
-      - name: Verify APK in app/ folder
-        run: |
-          echo "========================================"
-          echo "  APK INSTALLED FOR THIS RUN"
-          echo "========================================"
-          APK_FILE=$(ls app/*.apk 2>/dev/null | head -1)
-          if [ -z "$APK_FILE" ]; then
-            echo "ERROR: No APK found in app/ folder!"
-            exit 1
-          fi
-          APK_NAME=$(basename "$APK_FILE")
-          APK_SIZE=$(du -sh "$APK_FILE" | cut -f1)
-          APK_MD5=$(md5sum "$APK_FILE" | cut -d' ' -f1)
-          echo "  Name : $APK_NAME"
-          echo "  Path : $APK_FILE"
-          echo "  Size : $APK_SIZE"
-          echo "  MD5  : $APK_MD5"
-          echo "========================================"
-          echo "APK ready for testing"
-
-      - name: Run Firebase Test 5
-        env:
+          APPIUM_DEVICE_NAME: emulator-5554
+          APPIUM_PLATFORM_VERSION: "12"
+          APPIUM_SERVER_URL: http://127.0.0.1:4723
           FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-        run: |
-          mvn test \
-            -Dtest=FirebaseTest#verifyCustomFirebaseTokenCreation \
-            -DforkCount=0 \
-            -pl .
         continue-on-error: true
 
       - name: Upload Allure results

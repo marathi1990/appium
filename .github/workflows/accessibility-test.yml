@@ -9,39 +9,14 @@ on:
 
 jobs:
   accessibility-test:
-    name: "AccessibilityTest — API 30 Emulator + Git LFS APK"
+    name: "AccessibilityTest — API 30 Emulator + Firebase APK"
     runs-on: ubuntu-latest
 
     steps:
 
-      # ── 1. Checkout with Git LFS ───────────────────────────────────────────
-      - name: Checkout repository (with LFS)
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Pull Git LFS files
-        run: git lfs pull
-
-      - name: Verify APK downloaded from LFS
-        run: |
-          echo "========================================"
-          echo "  APK INSTALLED FOR THIS RUN"
-          echo "========================================"
-          APK_FILE=$(ls app/*.apk 2>/dev/null | head -1)
-          if [ -z "$APK_FILE" ]; then
-            echo "ERROR: No APK found in app/ folder!"
-            exit 1
-          fi
-          APK_NAME=$(basename "$APK_FILE")
-          APK_SIZE=$(du -sh "$APK_FILE" | cut -f1)
-          APK_MD5=$(md5sum "$APK_FILE" | cut -d' ' -f1)
-          echo "  Name : $APK_NAME"
-          echo "  Path : $APK_FILE"
-          echo "  Size : $APK_SIZE"
-          echo "  MD5  : $APK_MD5"
-          echo "========================================"
-          echo "APK verification complete"
 
       # ── 2. Java 17 ─────────────────────────────────────────────────────────
       - name: Set up JDK 17
@@ -96,7 +71,33 @@ jobs:
           echo "Firebase service account written successfully."
         shell: bash
 
-      # ── 7. Boot emulator + install APK + run test ──────────────────────────
+      # ── 7. Download latest APK from Firebase App Distribution ──────────────
+      - name: Download APK from Firebase App Distribution
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      - name: Verify APK downloaded from Firebase
+        run: |
+          echo "========================================"
+          echo "  APK INSTALLED FOR THIS RUN"
+          echo "========================================"
+          APK_FILE=$(ls app/*.apk 2>/dev/null | head -1)
+          if [ -z "$APK_FILE" ]; then
+            echo "ERROR: No APK found in app/ folder!"
+            exit 1
+          fi
+          APK_NAME=$(basename "$APK_FILE")
+          APK_SIZE=$(du -sh "$APK_FILE" | cut -f1)
+          APK_MD5=$(md5sum "$APK_FILE" | cut -d' ' -f1)
+          echo "  Name : $APK_NAME"
+          echo "  Path : $APK_FILE"
+          echo "  Size : $APK_SIZE"
+          echo "  MD5  : $APK_MD5"
+          echo "========================================"
+          echo "APK verification complete"
+
+      # ── 8. Boot emulator + run test ────────────────────────────────────────
       #
       #  android-emulator-runner starts the AVD, waits until it is fully booted,
       #  then runs the `script` block — so Appium + emulator are both ready when
@@ -132,7 +133,7 @@ jobs:
           APPIUM_PLATFORM_VERSION: "11"
           APPIUM_SERVER_URL: http://127.0.0.1:4723
 
-      # ── 8. Upload results ──────────────────────────────────────────────────
+      # ── 9. Upload results ──────────────────────────────────────────────────
       - name: Upload Appium logs
         uses: actions/upload-artifact@v4
         if: always()
