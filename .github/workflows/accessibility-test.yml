@@ -25,8 +25,22 @@ jobs:
 
       - name: Verify APK downloaded from LFS
         run: |
-          echo "=== APK files in app/ ==="
-          ls -lh app/*.apk
+          echo "========================================"
+          echo "  APK INSTALLED FOR THIS RUN"
+          echo "========================================"
+          APK_FILE=$(ls app/*.apk 2>/dev/null | head -1)
+          if [ -z "$APK_FILE" ]; then
+            echo "ERROR: No APK found in app/ folder!"
+            exit 1
+          fi
+          APK_NAME=$(basename "$APK_FILE")
+          APK_SIZE=$(du -sh "$APK_FILE" | cut -f1)
+          APK_MD5=$(md5sum "$APK_FILE" | cut -d' ' -f1)
+          echo "  Name : $APK_NAME"
+          echo "  Path : $APK_FILE"
+          echo "  Size : $APK_SIZE"
+          echo "  MD5  : $APK_MD5"
+          echo "========================================"
           echo "APK verification complete"
 
       # ── 2. Java 17 ─────────────────────────────────────────────────────────
