@@ -114,7 +114,6 @@ jobs:
 
             echo "=== Test complete ==="
         env:
-          APP_PATH: ${{ github.workspace }}/app/FluentHealth-6.0.7-33.apk
           APPIUM_DEVICE_NAME: emulator-5554
           APPIUM_PLATFORM_VERSION: "11"
           APPIUM_SERVER_URL: http://127.0.0.1:4723

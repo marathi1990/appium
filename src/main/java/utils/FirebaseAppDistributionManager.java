@@ -113,6 +113,20 @@ public class FirebaseAppDistributionManager {
         Files.createDirectories(apkDir);
         Path apkPath = apkDir.resolve(apkFileName);
 
+        // Delete any stale APK files that don't match the current version
+        // so DriverManager.findFirst() always picks the right one
+        try (var stream = Files.walk(apkDir, 1)) {
+            stream.filter(p -> p.toString().endsWith(".apk") && !p.equals(apkPath))
+                  .forEach(stale -> {
+                      try {
+                          Files.delete(stale);
+                          System.out.println("Deleted stale APK: " + stale.getFileName());
+                      } catch (IOException e) {
+                          System.out.println("Warning: could not delete stale APK: " + stale.getFileName());
+                      }
+                  });
+        }
+
         // Skip download if this exact version is already cached
         if (Files.exists(apkPath)) {
             System.out.println("APK already cached at: " + apkPath);
