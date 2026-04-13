@@ -7,28 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:201489390325:android:f73421aeb25fd3b4c403bc",
+        "mobilesdk_app_id": "1:201489390325:android:d73b9e70f8a250f3c403bc",
         "android_client_info": {
-          "package_name": "io.appium.android.apis"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCO8nlZNI8HPgd2htSrwd5arHZ4oGxRzTc"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:201489390325:android:8a28dbdcae7d12cec403bc",
-        "android_client_info": {
-          "package_name": "io.appium.android.apis1"
+          "package_name": "com.fluenthealth.app"
         }
       },
       "oauth_client": [],
