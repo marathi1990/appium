@@ -15,7 +15,4 @@ src/test/resources/firebase-service-account.json
 .DS_Store
 Thumbs.db
 
-# APK files - too large for GitHub without LFS.
-# app/*.apk are tracked via Git LFS (see .gitattributes) — do NOT ignore them.
-*.apk
-!app/*.apk
+
