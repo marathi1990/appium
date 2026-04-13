@@ -82,7 +82,12 @@ jobs:
             || echo "Warning: Appium status check inconclusive — continuing"
         shell: bash
 
-      # ── 6. Boot emulator + install APK + run test ──────────────────────────
+      # ── 6. Write Firebase service account credentials ─────────────────────
+      - name: Write Firebase service account JSON
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ./src/test/resources/firebase-service-account.json
+        shell: bash
+
+      # ── 7. Boot emulator + install APK + run test ──────────────────────────
       #
       #  android-emulator-runner starts the AVD, waits until it is fully booted,
       #  then runs the `script` block — so Appium + emulator are both ready when
@@ -118,7 +123,7 @@ jobs:
           APPIUM_PLATFORM_VERSION: "11"
           APPIUM_SERVER_URL: http://127.0.0.1:4723
 
-      # ── 7. Upload results ──────────────────────────────────────────────────
+      # ── 8. Upload results ──────────────────────────────────────────────────
       - name: Upload Appium logs
         uses: actions/upload-artifact@v4
         if: always()
