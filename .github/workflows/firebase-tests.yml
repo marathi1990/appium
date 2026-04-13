@@ -66,7 +66,16 @@ jobs:
           script: echo "Emulator started"
 
       - name: Write Firebase service account JSON
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ./src/test/resources/firebase-service-account.json
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
+            echo "Go to: Settings → Secrets and variables → Actions → New repository secret"
+            exit 1
+          fi
+          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
+          echo "Firebase service account written successfully."
         shell: bash
 
       - name: Download APK from Firebase App Distribution
@@ -158,7 +167,17 @@ jobs:
           script: echo "Emulator started"
 
       - name: Write Firebase service account JSON
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ./src/test/resources/firebase-service-account.json
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
+            echo "Go to: Settings → Secrets and variables → Actions → New repository secret"
+            exit 1
+          fi
+          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
+          echo "Firebase service account written successfully."
+        shell: bash
 
       - name: Download APK from Firebase App Distribution
         run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
@@ -249,7 +268,17 @@ jobs:
           script: echo "Emulator started"
 
       - name: Write Firebase service account JSON
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ./src/test/resources/firebase-service-account.json
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
+            echo "Go to: Settings → Secrets and variables → Actions → New repository secret"
+            exit 1
+          fi
+          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
+          echo "Firebase service account written successfully."
+        shell: bash
 
       - name: Download APK from Firebase App Distribution
         run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
@@ -340,7 +369,17 @@ jobs:
           script: echo "Emulator started"
 
       - name: Write Firebase service account JSON
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ./src/test/resources/firebase-service-account.json
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
+            echo "Go to: Settings → Secrets and variables → Actions → New repository secret"
+            exit 1
+          fi
+          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
+          echo "Firebase service account written successfully."
+        shell: bash
 
       - name: Download APK from Firebase App Distribution
         run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
@@ -431,7 +470,17 @@ jobs:
           script: echo "Emulator started"
 
       - name: Write Firebase service account JSON
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ./src/test/resources/firebase-service-account.json
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not set."
+            echo "Go to: Settings → Secrets and variables → Actions → New repository secret"
+            exit 1
+          fi
+          echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
+          echo "Firebase service account written successfully."
+        shell: bash
 
       - name: Download APK from Firebase App Distribution
         run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
