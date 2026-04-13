@@ -31,12 +31,11 @@ public class FirebaseAppDistributionManager {
     private static final String DEFAULT_SERVICE_ACCOUNT_PATH = "src/test/resources/firebase-service-account.json";
     private static final String FIREBASE_APP_ID_ENV = "FIREBASE_APP_ID";
 
-    // App IDs from google-services.json (project: testing-automation-5752f, number: 201489390325)
-    public static final String APP_ID_IO_APPIUM_APIS  = "1:201489390325:android:f73421aeb25fd3b4c403bc"; // io.appium.android.apis
-    public static final String APP_ID_IO_APPIUM_APIS1 = "1:201489390325:android:8a28dbdcae7d12cec403bc"; // io.appium.android.apis1
+    // App ID from google-services.json (project: testing-automation-5752f, number: 201489390325)
+    public static final String APP_ID_FLUENT_HEALTH = "1:201489390325:android:d73b9e70f8a250f3c403bc"; // com.fluenthealth.app
 
     // Default App ID used when FIREBASE_APP_ID env var is not set
-    private static final String DEFAULT_APP_ID = APP_ID_IO_APPIUM_APIS;
+    private static final String DEFAULT_APP_ID = APP_ID_FLUENT_HEALTH;
 
     // Firebase App Distribution REST API base URL
     private static final String FAD_BASE_URL = "https://firebaseappdistribution.googleapis.com/v1";

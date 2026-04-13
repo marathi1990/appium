@@ -22,7 +22,7 @@ public class DriverManager {
                 .setPlatformVersion(platformVer)
                 .setDeviceName(deviceName)
                 .setApp(appPath)
-                .setAppPackage("io.appium.android.apis")
+                .setAppPackage("com.fluenthealth.app")
                 .setAutoGrantPermissions(true)
                 .setNoReset(false)
                 .setNewCommandTimeout(java.time.Duration.ofSeconds(3600));
@@ -62,7 +62,7 @@ public class DriverManager {
         // 3. Firebase App Distribution (fallback — config preserved for future use)
         System.out.println("[DriverManager] No local APK found — downloading from Firebase App Distribution...");
         return FirebaseAppDistributionManager.downloadLatestApk(
-                FirebaseAppDistributionManager.APP_ID_IO_APPIUM_APIS);
+                FirebaseAppDistributionManager.APP_ID_FLUENT_HEALTH);
     }
 
     private static String env(String key, String defaultValue) {
