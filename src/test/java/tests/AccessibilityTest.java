@@ -23,6 +23,6 @@ public class AccessibilityTest extends BaseTest {
         }
 
         Assertions.assertTrue(isAccessibilityPresent,
-                "Element with text 'Accessibility' was not found on the screen");
+                "1Element with text 'Accessibility' was not found on the screen");
     }
 }
