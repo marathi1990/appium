@@ -123,6 +123,13 @@
                 </configuration>
             </plugin>
 
+            <!-- Exec Plugin - for running FirebaseAppDistributionManager standalone -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+            </plugin>
+
             <!-- Allure Maven Plugin -->
             <plugin>
                 <groupId>io.qameta.allure</groupId>

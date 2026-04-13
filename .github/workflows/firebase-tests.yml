@@ -19,12 +19,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Pull Git LFS files (APK)
-        run: git lfs pull
-
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -68,6 +62,15 @@ jobs:
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ./src/test/resources/firebase-service-account.json
         shell: bash
 
+      - name: Download APK from Firebase App Distribution
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      - name: Verify APK in app/ folder
+        run: |
+          echo "=== APK Verification ==="
+          ls -lh app/*.apk
+          echo "APK ready for testing"
+
       - name: Run Firebase Test 1
         env:
           FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
@@ -95,12 +98,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Pull Git LFS files (APK)
-        run: git lfs pull
-
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -141,6 +138,15 @@ jobs:
 
       - name: Write Firebase service account JSON
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ./src/test/resources/firebase-service-account.json
+
+      - name: Download APK from Firebase App Distribution
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      - name: Verify APK in app/ folder
+        run: |
+          echo "=== APK Verification ==="
+          ls -lh app/*.apk
+          echo "APK ready for testing"
 
       - name: Run Firebase Test 2
         env:
@@ -169,12 +175,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Pull Git LFS files (APK)
-        run: git lfs pull
-
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -215,6 +215,15 @@ jobs:
 
       - name: Write Firebase service account JSON
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ./src/test/resources/firebase-service-account.json
+
+      - name: Download APK from Firebase App Distribution
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      - name: Verify APK in app/ folder
+        run: |
+          echo "=== APK Verification ==="
+          ls -lh app/*.apk
+          echo "APK ready for testing"
 
       - name: Run Firebase Test 3
         env:
@@ -243,12 +252,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Pull Git LFS files (APK)
-        run: git lfs pull
-
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -289,6 +292,15 @@ jobs:
 
       - name: Write Firebase service account JSON
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ./src/test/resources/firebase-service-account.json
+
+      - name: Download APK from Firebase App Distribution
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      - name: Verify APK in app/ folder
+        run: |
+          echo "=== APK Verification ==="
+          ls -lh app/*.apk
+          echo "APK ready for testing"
 
       - name: Run Firebase Test 4
         env:
@@ -317,12 +329,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Pull Git LFS files (APK)
-        run: git lfs pull
-
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -363,6 +369,15 @@ jobs:
 
       - name: Write Firebase service account JSON
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ./src/test/resources/firebase-service-account.json
+
+      - name: Download APK from Firebase App Distribution
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      - name: Verify APK in app/ folder
+        run: |
+          echo "=== APK Verification ==="
+          ls -lh app/*.apk
+          echo "APK ready for testing"
 
       - name: Run Firebase Test 5
         env:

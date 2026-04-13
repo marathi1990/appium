@@ -181,6 +181,18 @@ public class FirebaseAppDistributionManager {
         }
     }
 
+    /**
+     * Standalone entry point: downloads the latest APK and prints its path and size.
+     * Run with: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager"
+     */
+    public static void main(String[] args) throws Exception {
+        String apkPath = downloadLatestApk();
+        long sizeBytes = java.nio.file.Files.size(Paths.get(apkPath));
+        System.out.printf("APK path : %s%n", apkPath);
+        System.out.printf("APK size : %.2f MB%n", sizeBytes / (1024.0 * 1024.0));
+        System.out.println("APK download verified successfully.");
+    }
+
     private static void downloadFile(String fileUrl, Path destination) throws IOException {
         URL url = new URL(fileUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
