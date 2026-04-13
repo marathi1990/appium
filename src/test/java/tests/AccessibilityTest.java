@@ -17,6 +17,7 @@ public class AccessibilityTest extends BaseTest {
             isAccessibilityPresent = DriverManager.driver
                     .findElement(AppiumBy.androidUIAutomator("new UiSelector().text(\"Accessibility\")"))
                     .isDisplayed();
+            System.out.println("Test is completed");
         } catch (NoSuchElementException e) {
             isAccessibilityPresent = false;
         }
