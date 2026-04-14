@@ -467,6 +467,8 @@ jobs:
           cache: maven
 
       - name: Download all Allure results artifacts
+        if: always()
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           pattern: allure-results-firebase-test-*
@@ -474,20 +476,27 @@ jobs:
           merge-multiple: true
 
       - name: Copy merged results for report generation
+        if: always()
         run: |
           mkdir -p target/allure-results
           cp -r merged-allure-results/* target/allure-results/ 2>/dev/null || true
 
       - name: Generate Allure Report
+        if: always()
+        continue-on-error: true
         run: |
           npm install -g allure-commandline
           allure generate target/allure-results -o allure-report --clean
 
       - name: Package report and results
+        if: always()
         run: |
           mkdir -p logs-archive
           cp -r allure-report/ logs-archive/allure-report 2>/dev/null || true
           cp -r target/surefire-reports/ logs-archive/test-reports 2>/dev/null || true
+          if [ ! "$(ls -A logs-archive 2>/dev/null)" ]; then
+            echo "No reports found - creating placeholder" > logs-archive/INFO.txt
+          fi
           cd logs-archive
           zip -r ../firebase-test-logs-${{ github.run_number }}.zip . -q
           cd ..
@@ -495,6 +504,7 @@ jobs:
           ls -lh firebase-test-logs-*.zip
 
       - name: Upload report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: firebase-allure-report

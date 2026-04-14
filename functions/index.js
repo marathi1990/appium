@@ -11,10 +11,11 @@
  * Required Firebase secrets (set once):
  *   firebase functions:secrets:set GH_PAT
  *   firebase functions:secrets:set GH_REPO_OWNER   (e.g. marathi1990)
- *   firebase functions:secrets:set GH_REPO_NAME    (e.g. appium)
+ *   firebase functions:secrets:set GH_REPO_NAME    (e.g. Appium-JAVA-Firebase)
  */
 
 const { onCustomEventPublished } = require("firebase-functions/v2/eventarc");
+const { onRequest }              = require("firebase-functions/v2/https");
 const { defineSecret }           = require("firebase-functions/params");
 const { logger }                 = require("firebase-functions");
 const https                      = require("https");
@@ -24,13 +25,12 @@ const GH_PAT        = defineSecret("GH_PAT");
 const GH_REPO_OWNER = defineSecret("GH_REPO_OWNER");
 const GH_REPO_NAME  = defineSecret("GH_REPO_NAME");
 
-// ── Cloud Function ─────────────────────────────────────────────────
+// ── Eventarc trigger: fires when a new build is uploaded ───────────
 exports.onNewAppDistributionBuild = onCustomEventPublished(
   {
     eventType: "google.firebase.appdistribution.release.v1.created",
     secrets:   [GH_PAT, GH_REPO_OWNER, GH_REPO_NAME],
-    // Deploy to the same region as your Firebase project
-    region: "us-central1",
+    region:    "us-central1",
   },
   async (event) => {
     const release = event.data || {};
@@ -47,12 +47,13 @@ exports.onNewAppDistributionBuild = onCustomEventPublished(
       createTime,
     });
 
-    const owner = GH_REPO_OWNER.value();
-    const repo  = GH_REPO_NAME.value();
-    const token = GH_PAT.value();
+    const owner = GH_PAT        && GH_REPO_OWNER.value();
+    const repo  = GH_REPO_NAME  && GH_REPO_NAME.value();
+    const token = GH_PAT        && GH_PAT.value();
 
     if (!owner || !repo || !token) {
       logger.error("Missing one or more required secrets: GH_PAT, GH_REPO_OWNER, GH_REPO_NAME");
+      logger.error("Run: firebase functions:secrets:set GH_PAT && firebase functions:secrets:set GH_REPO_OWNER && firebase functions:secrets:set GH_REPO_NAME");
       return;
     }
 
@@ -67,9 +68,64 @@ exports.onNewAppDistributionBuild = onCustomEventPublished(
       },
     });
 
-    await dispatchToGitHub({ owner, repo, token, payload });
+    try {
+      await dispatchToGitHub({ owner, repo, token, payload });
+      logger.info(`Successfully dispatched firebase-new-build to ${owner}/${repo}`);
+    } catch (err) {
+      logger.error(`Failed to dispatch to GitHub: ${err.message}`);
+      throw err;
+    }
+  }
+);
 
-    logger.info(`Dispatched firebase-new-build event to ${owner}/${repo}`);
+// ── HTTP trigger: call manually to test the dispatch without a build ─
+//
+//   POST https://<region>-<project>.cloudfunctions.net/testDispatch
+//   Authorization: Bearer <GH_PAT_value>     (simple auth guard)
+//
+exports.testDispatch = onRequest(
+  {
+    secrets: [GH_PAT, GH_REPO_OWNER, GH_REPO_NAME],
+    region:  "us-central1",
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "POST only" });
+    }
+
+    const owner = GH_REPO_OWNER.value();
+    const repo  = GH_REPO_NAME.value();
+    const token = GH_PAT.value();
+
+    if (!owner || !repo || !token) {
+      logger.error("testDispatch: missing secrets");
+      return res.status(500).json({
+        error: "Missing secrets. Set GH_PAT, GH_REPO_OWNER, GH_REPO_NAME via firebase functions:secrets:set",
+      });
+    }
+
+    const payload = JSON.stringify({
+      event_type: "firebase-new-build",
+      client_payload: {
+        release_name:    "manual-test",
+        build_version:   "0",
+        display_version: "manual",
+        create_time:     new Date().toISOString(),
+        triggered_by:    "manual-http-test",
+      },
+    });
+
+    try {
+      await dispatchToGitHub({ owner, repo, token, payload });
+      logger.info(`testDispatch: successfully dispatched to ${owner}/${repo}`);
+      return res.status(200).json({
+        success: true,
+        message: `Dispatched firebase-new-build to ${owner}/${repo}`,
+      });
+    } catch (err) {
+      logger.error(`testDispatch failed: ${err.message}`);
+      return res.status(500).json({ error: err.message });
+    }
   }
 );
 
@@ -81,12 +137,12 @@ function dispatchToGitHub({ owner, repo, token, payload }) {
       path:     `/repos/${owner}/${repo}/dispatches`,
       method:   "POST",
       headers: {
-        "Content-Type":  "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-        "Accept":         "application/vnd.github+json",
-        "Authorization":  `Bearer ${token}`,
+        "Content-Type":         "application/json",
+        "Content-Length":       Buffer.byteLength(payload),
+        "Accept":               "application/vnd.github+json",
+        "Authorization":        `Bearer ${token}`,
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent":    "firebase-appdistribution-webhook/1.0",
+        "User-Agent":           "firebase-appdistribution-webhook/1.0",
       },
     };
 
@@ -95,7 +151,6 @@ function dispatchToGitHub({ owner, repo, token, payload }) {
       res.on("data", (chunk) => { body += chunk; });
       res.on("end", () => {
         if (res.statusCode === 204) {
-          // 204 No Content = success for repository_dispatch
           resolve();
         } else {
           reject(new Error(
