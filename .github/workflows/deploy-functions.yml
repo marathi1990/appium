@@ -57,7 +57,11 @@ jobs:
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
         run: |
-          PROJECT="${FIREBASE_PROJECT_ID:-$(node -e "console.log(require('./.firebaserc').projects.default)")}"
+          if [ -n "$FIREBASE_PROJECT_ID" ]; then
+            PROJECT="$FIREBASE_PROJECT_ID"
+          else
+            PROJECT=$(node -e 'console.log(require("./.firebaserc").projects.default)')
+          fi
           if [ -z "$PROJECT" ]; then
             echo "::error::Could not resolve Firebase project ID. Set the FIREBASE_PROJECT_ID secret or ensure .firebaserc has a default project."
             exit 1
