@@ -10,7 +10,7 @@ import utils.FirebaseManager;
 /**
  * BaseTest - Base class for all Appium tests with Firebase integration.
  *
- * Setup:
+ * Setup:1
  * 1. Initializes Firebase Admin SDK once per test class (BeforeAll)
  * 2. Initializes Appium driver before each test (BeforeEach)
  * 3. Cleans up driver after each test (AfterEach)
