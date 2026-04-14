@@ -77,15 +77,26 @@ jobs:
           echo "  App ID        : $FIREBASE_APP_ID"
           echo "  Project number: $PROJECT_NUM"
 
-          RESPONSE=$(curl -sf \
+          API_URL="https://firebaseappdistribution.googleapis.com/v1/projects/${PROJECT_NUM}/apps/${FIREBASE_APP_ID}/releases?orderBy=createTime+desc&pageSize=1"
+          echo "  API URL       : $API_URL"
+
+          HTTP_STATUS=$(curl -s -o /tmp/firebase_response.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ steps.token.outputs.access_token }}" \
-            "https://firebaseappdistribution.googleapis.com/v1/projects/${PROJECT_NUM}/apps/${FIREBASE_APP_ID}/releases?orderBy=createTime+desc&pageSize=1") || {
-            echo "::warning::Firebase App Distribution API call failed. Skipping this poll cycle."
+            "$API_URL")
+
+          echo "  HTTP status   : $HTTP_STATUS"
+          echo "  Raw response  : $(cat /tmp/firebase_response.json)"
+
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "::error::Firebase App Distribution API returned HTTP $HTTP_STATUS"
+            echo "::error::Response: $(cat /tmp/firebase_response.json)"
             echo "release_name=none" >> $GITHUB_OUTPUT
             echo "build_version=0"   >> $GITHUB_OUTPUT
             echo "display_version=unknown" >> $GITHUB_OUTPUT
             exit 0
-          }
+          fi
+
+          RESPONSE=$(cat /tmp/firebase_response.json)
 
           RELEASE_NAME=$(echo    "$RESPONSE" | jq -r '.releases[0].name         // "none"')
           BUILD_VERSION=$(echo   "$RESPONSE" | jq -r '.releases[0].buildVersion  // "0"')
