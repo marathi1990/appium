@@ -3,7 +3,7 @@ name: Firebase Build Monitor
 # ─────────────────────────────────────────────────────────────────
 # PURPOSE
 # ─────────────────────────────────────────────────────────────────
-# Polls Firebase App Distribution every 15 minutes.
+# Polls Firebase App Distribution every 5 minutes.
 # When a new APK build is detected it fires a repository_dispatch
 # event ("firebase-new-build") that triggers firebase-tests.yml —
 # so tests run automatically without any git commit.
