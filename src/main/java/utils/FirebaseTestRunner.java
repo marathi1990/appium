@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * FirebaseTestRunner - Orchestrates APK download from Firebase and test execution.
+ * FirebaseTestRunner - Orchestrates APK download from Firebase and test execution..
  *
  * This class manages the complete workflow:
  * 1. Download latest APK from Firebase App Distribution
