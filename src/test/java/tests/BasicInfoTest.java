@@ -63,7 +63,7 @@ public class BasicInfoTest extends BaseTest {
     }
 
 
-    @Tag("regression")
+    @Tag("regression1")
     @Test
     public void verifyBasicInfoFieldsEditabilityTest2() throws InterruptedException {
         LoginPage loginPage = new LoginPage();
@@ -101,7 +101,7 @@ public class BasicInfoTest extends BaseTest {
         System.out.println("All field editability checks completed successfully");
     }
 
-    @Tag("regression")
+    @Tag("smoke")
     @Test
     public void verifyBasicInfoFieldsEditabilityTest3() throws InterruptedException {
         LoginPage loginPage = new LoginPage();
@@ -110,7 +110,7 @@ public class BasicInfoTest extends BaseTest {
 
         System.out.println("=== Starting BasicInfo Editability Test ===");
         loginPage.loginWithPin("9594260325", "111111");
-        System.out.println("✅ Login completed, waiting for Home page...");
+        System.out.println("✅ smoke Login completed, waiting for Home page...");
         Thread.sleep(3000);
 
         WebDriverWait wait = new WebDriverWait(DriverManager.driver, Duration.ofSeconds(45));
@@ -139,7 +139,7 @@ public class BasicInfoTest extends BaseTest {
         System.out.println("All field editability checks completed successfully");
     }
 
-    @Tag("regression")
+    @Tag("smoke")
     @Test
     public void verifyBasicInfoFieldsEditabilityTest4() throws InterruptedException {
         LoginPage loginPage = new LoginPage();
@@ -148,7 +148,7 @@ public class BasicInfoTest extends BaseTest {
 
         System.out.println("=== Starting BasicInfo Editability Test ===");
         loginPage.loginWithPin("9594260325", "111111");
-        System.out.println("✅ Login completed, waiting for Home page...");
+        System.out.println("✅ smoke2 Login completed, waiting for Home page...");
         Thread.sleep(3000);
 
         WebDriverWait wait = new WebDriverWait(DriverManager.driver, Duration.ofSeconds(45));
