@@ -156,11 +156,7 @@ jobs:
             -no-snapshot-save -no-window -gpu swiftshader_indirect
             -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: |
-            mvn test \
-              -Dtest="${{ matrix.classes }}" \
-              -Dgroups="${{ inputs.tags }}" \
-              -DforkCount=0 -pl .
+          script: mvn test -Dtest="${{ matrix.classes }}" -Dgroups="${{ inputs.tags }}" -DforkCount=0 -pl .
         env:
           APPIUM_DEVICE_NAME: emulator-5554
           APPIUM_PLATFORM_VERSION: "11"
