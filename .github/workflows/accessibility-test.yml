@@ -114,3 +114,38 @@ jobs:
           name: surefire-reports-regression1
           path: target/surefire-reports
           retention-days: 14
+
+      - name: Package report into ZIP
+        if: always()
+        run: |
+          mkdir -p logs-archive
+          cp -r allure-report/ logs-archive/allure-report 2>/dev/null || true
+          cp -r target/surefire-reports/ logs-archive/test-reports 2>/dev/null || true
+          [ -z "$(ls -A logs-archive)" ] && echo "No reports found" > logs-archive/INFO.txt
+          cd logs-archive && zip -r ../regression1-report-${{ github.run_number }}.zip . -q
+
+      - name: Send report via email
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_PASSWORD }}
+          subject: "Regression1 Test Report - Run #${{ github.run_number }} - ${{ github.repository }}"
+          to: ${{ secrets.EMAIL_RECIPIENT }}
+          from: ${{ secrets.GMAIL_USERNAME }}
+          attachments: ${{ github.workspace }}/regression1-report-${{ github.run_number }}.zip
+          body: |
+            Regression1 test execution completed.
+
+            Repository : ${{ github.repository }}
+            Branch     : ${{ github.ref_name }}
+            Trigger    : ${{ github.event_name }}
+            Run        : #${{ github.run_number }}
+            Author     : ${{ github.actor }}
+
+            Pipeline: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Attachment: regression1-report-${{ github.run_number }}.zip
+            → Extract and open allure-report/index.html to view the report.
