@@ -47,9 +47,9 @@ exports.onNewAppDistributionBuild = onCustomEventPublished(
       createTime,
     });
 
-    const owner = GH_PAT        && GH_REPO_OWNER.value();
-    const repo  = GH_REPO_NAME  && GH_REPO_NAME.value();
-    const token = GH_PAT        && GH_PAT.value();
+    const owner = GH_REPO_OWNER.value();
+    const repo  = GH_REPO_NAME.value();
+    const token = GH_PAT.value();
 
     if (!owner || !repo || !token) {
       logger.error("Missing one or more required secrets: GH_PAT, GH_REPO_OWNER, GH_REPO_NAME");
