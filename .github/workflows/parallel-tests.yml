@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       tags:
-        description: 'Tag filter (e.g. smoke  |  regression1  |  smoke | regression1)'
+        description: 'Tags to run — comma-separated for multiple (e.g. regression1  or  smoke,regression1)'
         required: true
         default: 'regression1'
         type: string
@@ -43,6 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.gen.outputs.matrix }}
+      tags:   ${{ steps.normalize.outputs.tags }}
 
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +54,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+
+      - name: Normalize tag expression
+        id: normalize
+        run: |
+          # Accept comma or dot as separator and convert to JUnit 5 OR syntax ( | )
+          # Examples:
+          #   "regression1, smoke"  →  "regression1|smoke"
+          #   "regression1. smoke"  →  "regression1|smoke"
+          #   "regression1"         →  "regression1"       (unchanged)
+          #   "smoke | regression1" →  "smoke | regression1" (already valid, unchanged)
+          EXPR=$(echo "${{ inputs.tags }}" | sed 's/[[:space:]]*[,.][[:space:]]*/|/g' | xargs)
+          echo "tags=$EXPR" >> $GITHUB_OUTPUT
+          echo "Normalized tag expression: $EXPR"
 
       - name: Compile test sources
         run: mvn test-compile -q
@@ -139,7 +153,7 @@ jobs:
         run: |
           echo "======================================"
           echo "  Shard ${{ matrix.shard }} / ${{ inputs.parallel }}"
-          echo "  Tags   : ${{ inputs.tags }}"
+          echo "  Tags   : ${{ needs.setup.outputs.tags }}"
           echo "  Classes: ${{ matrix.classes }}"
           echo "======================================"
 
@@ -156,7 +170,7 @@ jobs:
             -no-snapshot-save -no-window -gpu swiftshader_indirect
             -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: mvn test -Dtest="${{ matrix.classes }}" -Dgroups="${{ inputs.tags }}" -DforkCount=0 -pl .
+          script: mvn test -Dtest="${{ matrix.classes }}" -Dgroups="${{ needs.setup.outputs.tags }}" -DforkCount=0 -pl .
         env:
           APPIUM_DEVICE_NAME: emulator-5554
           APPIUM_PLATFORM_VERSION: "11"
