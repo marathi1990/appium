@@ -24,7 +24,7 @@ import io.appium.java_client.AppiumBy;
 
 public class BasicInfoTest extends BaseTest {
 
-    @Tag("regression")
+    @Tag("regression1")
     @Test
     public void verifyBasicInfoFieldsEditabilityTest1() throws InterruptedException {
         LoginPage loginPage = new LoginPage();
