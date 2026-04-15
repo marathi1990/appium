@@ -62,14 +62,14 @@ jobs:
         run: |
           PARALLEL="${{ inputs.parallel }}"
 
-          # Collect all test class names (exclude inner classes)
-          ALL_CLASSES=$(find target/test-classes -name "*Test*.class" \
+          # Only look in tests/ package — excludes base.BaseTest and other non-test classes
+          ALL_CLASSES=$(find target/test-classes/tests -name "*Test.class" \
             | grep -v '\$' | sort \
             | sed 's|target/test-classes/||' \
             | sed 's|\.class$||' \
             | sed 's|/|.|g')
 
-          echo "All test classes:"
+          echo "Test classes found:"
           echo "$ALL_CLASSES"
 
           # Build shard list: each entry holds the comma-separated classes for that shard
@@ -81,11 +81,10 @@ jobs:
             SHARDS+=("{\"shard\":$i,\"classes\":\"$SHARD_CLASSES\"}")
           done
 
-          # Build JSON matrix
-          MATRIX_JSON=$(printf '%s\n' "${SHARDS[@]}" | jq -s '{"include": .}')
+          # -c produces compact (single-line) JSON — required for GITHUB_OUTPUT
+          MATRIX_JSON=$(printf '%s\n' "${SHARDS[@]}" | jq -sc '{"include": .}')
           echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
-          echo "Generated matrix:"
-          echo "$MATRIX_JSON"
+          echo "Generated matrix: $MATRIX_JSON"
 
   # ── Stage 2: Parallel test execution (one job per shard) ──────────
   test:
