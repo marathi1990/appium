@@ -449,7 +449,6 @@ jobs:
           subject: "Firebase Test Report - Run #${{ github.run_number }} - ${{ github.repository }}"
           to: ${{ secrets.EMAIL_RECIPIENT }}
           from: ${{ secrets.GMAIL_USERNAME }}
-          attachments: ${{ github.workspace }}/firebase-test-logs-${{ github.run_number }}.zip
           body: |
             Firebase integration test execution completed.
 
@@ -459,7 +458,8 @@ jobs:
             Run        : #${{ github.run_number }}
             Author     : ${{ github.actor }}
 
-            Pipeline: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-            Attachment: firebase-test-logs-${{ github.run_number }}.zip
+            Download Allure Report:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            → Go to the link above → Artifacts section → download firebase-allure-report.zip
+            → Extract and open allure-report/index.html in your browser.
             → Extract and open allure-report/index.html to view the report.

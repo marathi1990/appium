@@ -147,7 +147,6 @@ jobs:
           subject: "Regression1 Test Report - Run #${{ github.run_number }} - ${{ github.repository }}"
           to: ${{ secrets.EMAIL_RECIPIENT }}
           from: ${{ secrets.GMAIL_USERNAME }}
-          attachments: ${{ github.workspace }}/regression1-report-${{ github.run_number }}.zip
           body: |
             Regression1 test execution completed.
 
@@ -157,7 +156,7 @@ jobs:
             Run        : #${{ github.run_number }}
             Author     : ${{ github.actor }}
 
-            Pipeline: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-            Attachment: regression1-report-${{ github.run_number }}.zip
-            → Extract and open allure-report/index.html to view the report.
+            Download Allure Report:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            → Go to the link above → Artifacts section → download allure-html-report-regression1.zip
+            → Extract and open allure-report/index.html in your browser.

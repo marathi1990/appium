@@ -203,7 +203,6 @@ jobs:
           subject: "Parallel Test Report [tags=${{ inputs.tags }}] - Run #${{ github.run_number }}"
           to: ${{ secrets.EMAIL_RECIPIENT }}
           from: ${{ secrets.GMAIL_USERNAME }}
-          attachments: ${{ github.workspace }}/parallel-report-${{ github.run_number }}.zip
           body: |
             Parallel test execution completed.
 
@@ -214,7 +213,7 @@ jobs:
             Run       : #${{ github.run_number }}
             Author    : ${{ github.actor }}
 
-            Pipeline: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-            Attachment: parallel-report-${{ github.run_number }}.zip
-            → Extract and open allure-report/index.html to view the full merged report.
+            Download Allure Report:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            → Go to the link above → Artifacts section → download parallel-allure-report.zip
+            → Extract and open allure-report/index.html in your browser.

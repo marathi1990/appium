@@ -136,7 +136,6 @@ jobs:
         subject: "✅ Allure Test Report - ${{ github.repository }} - Run #${{ github.run_number }}"
         to: ${{ secrets.EMAIL_RECIPIENT }}
         from: ${{ secrets.GMAIL_USERNAME }}
-        attachments: ${{ github.workspace }}/test-logs-${{ github.run_number }}.zip
         body: |
           Hi,
 
@@ -154,17 +153,11 @@ jobs:
           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           CI/CD Pipeline: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-          📦 ATTACHMENTS:
+          📦 DOWNLOAD ALLURE REPORT:
           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-          ✓ test-logs-${{ github.run_number }}.zip (Contains all logs and reports)
-            - Allure Report (HTML)
-            - Test Reports (XML)
-            - Log Files
-
-          HOW TO VIEW:
-          1. Download the attached ZIP file
-          2. Extract it to a folder
-          3. Open allure-report/index.html in your browser
+          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          → Go to the link above → Artifacts section → download allure-report.zip
+          → Extract and open allure-report/index.html in your browser.
 
           ---
           Automated Test Report System
