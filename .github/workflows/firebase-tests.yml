@@ -8,13 +8,10 @@ on:
   # Run manually from GitHub Actions UI
   workflow_dispatch:
 
-  # Auto-run every hour — always picks up the latest APK from Firebase App Distribution
-  schedule:
-    - cron: '0 * * * *'
-
-  # Triggered by Cloud Function when a new build is uploaded (optional, works when Cloud Function is deployed)
+  # Triggered by Cloud Function when a new build is uploaded
+  # (smoke-on-new-build.yml handles the fast smoke check; this runs the full Firebase suite)
   repository_dispatch:
-    types: [ firebase-new-build ]
+    types: [ firebase-full-suite ]
 
 jobs:
 

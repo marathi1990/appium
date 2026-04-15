@@ -1,0 +1,177 @@
+name: Smoke Tests — New Firebase Build
+
+# ─────────────────────────────────────────────────────────────────
+# TRIGGERED AUTOMATICALLY by the Firebase Cloud Function
+# (functions/index.js) the moment a developer uploads a new build
+# to Firebase App Distribution.
+#
+# Flow:
+#   Dev uploads APK to Firebase App Distribution
+#     → Eventarc fires "google.firebase.appdistribution.release.v1.created"
+#       → Cloud Function (onNewAppDistributionBuild) calls GitHub API
+#         → repository_dispatch type: firebase-new-build
+#           → THIS WORKFLOW runs smoke test suite
+#
+# Also runnable manually from Actions → Run workflow.
+# ─────────────────────────────────────────────────────────────────
+
+on:
+  repository_dispatch:
+    types: [ firebase-new-build ]
+
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger (optional)'
+        required: false
+        default: 'manual'
+
+jobs:
+  smoke:
+    name: "Smoke Tests — ${{ github.event.client_payload.display_version || 'latest' }}"
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ── Extract build info from Cloud Function payload ──────────
+      - name: Set build info
+        id: build
+        run: |
+          VERSION="${{ github.event.client_payload.display_version }}"
+          BUILD_NUM="${{ github.event.client_payload.build_version }}"
+          TRIGGER="${{ github.event.client_payload.triggered_by }}"
+          echo "version=${VERSION:-latest}"    >> $GITHUB_OUTPUT
+          echo "build=${BUILD_NUM:-N/A}"       >> $GITHUB_OUTPUT
+          echo "trigger=${TRIGGER:-manual}"    >> $GITHUB_OUTPUT
+          echo "New build detected: v${VERSION:-latest} (build ${BUILD_NUM:-N/A})"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Appium and UIAutomator2 driver
+        run: |
+          npm install -g appium
+          appium driver install uiautomator2
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | \
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Start Appium server
+        run: appium --port 4723 --log-level info > /tmp/appium.log 2>&1 &
+
+      - name: Write Firebase service account JSON
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: echo "$FIREBASE_SA_JSON" > ./src/test/resources/firebase-service-account.json
+
+      - name: Download latest APK from Firebase App Distribution
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+        run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
+
+      # ── Run smoke suite ──────────────────────────────────────────
+      - name: Run smoke tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          profile: pixel_4
+          avd-name: test_avd
+          emulator-options: >-
+            -no-snapshot-save -no-window -gpu swiftshader_indirect
+            -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: mvn test -Dgroups=smoke -DforkCount=0 -pl .
+        env:
+          APPIUM_DEVICE_NAME: emulator-5554
+          APPIUM_PLATFORM_VERSION: "11"
+          APPIUM_SERVER_URL: http://127.0.0.1:4723
+        continue-on-error: true
+
+      # ── Upload raw Allure results (for history / debugging) ──────
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results-smoke
+          path: target/allure-results
+          retention-days: 14
+
+      # ── Generate Allure HTML report ──────────────────────────────
+      - name: Generate Allure Report
+        if: always()
+        continue-on-error: true
+        run: |
+          npm install -g allure-commandline
+          allure generate target/allure-results -o allure-report --clean
+
+      - name: Upload Allure HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-allure-report
+          path: allure-report/
+          retention-days: 14
+
+      # ── Generate styled PDF + HTML email report ──────────────────
+      - name: Generate PDF Report
+        if: always()
+        continue-on-error: true
+        run: |
+          npm install puppeteer-core --prefix /tmp/pdf-deps --no-save --loglevel error
+          NODE_PATH=/tmp/pdf-deps/node_modules node .github/scripts/generate-pdf-report.js \
+            target/allure-results test-report-${{ github.run_number }}.pdf
+
+      # ── Email ────────────────────────────────────────────────────
+      - name: Check email secrets
+        id: email-check
+        if: always()
+        run: |
+          if [ -n "${{ secrets.GMAIL_USERNAME }}" ] && \
+             [ -n "${{ secrets.GMAIL_PASSWORD }}" ] && \
+             [ -n "${{ secrets.EMAIL_RECIPIENT }}" ]; then
+            echo "ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "ready=false" >> $GITHUB_OUTPUT
+            echo "::warning::Email skipped — add GMAIL_USERNAME, GMAIL_PASSWORD, EMAIL_RECIPIENT in Settings → Secrets → Actions"
+          fi
+
+      - name: Send smoke test report via email
+        if: always() && steps.email-check.outputs.ready == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_PASSWORD }}
+          subject: "Smoke Tests — Build v${{ steps.build.outputs.version }} — Run #${{ github.run_number }}"
+          to: ${{ secrets.EMAIL_RECIPIENT }}
+          from: ${{ secrets.GMAIL_USERNAME }}
+          attachments: test-report-${{ github.run_number }}.pdf
+          html_body: file://test-report-${{ github.run_number }}.html
+          body: |
+            Smoke test suite completed for new Firebase build.
+            Build Version : v${{ steps.build.outputs.version }} (build ${{ steps.build.outputs.build }})
+            Triggered By  : ${{ steps.build.outputs.trigger }}
+            Repository    : ${{ github.repository }}
+            Branch        : ${{ github.ref_name }}
+            Run           : #${{ github.run_number }}
+            Full Allure Report: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
