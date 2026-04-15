@@ -156,16 +156,11 @@ jobs:
           to: ${{ secrets.EMAIL_RECIPIENT }}
           from: ${{ secrets.GMAIL_USERNAME }}
           attachments: test-report-${{ github.run_number }}.pdf
+          html_body: file://test-report-${{ github.run_number }}.html
           body: |
             Regression1 test execution completed.
-
             Repository : ${{ github.repository }}
             Branch     : ${{ github.ref_name }}
-            Trigger    : ${{ github.event_name }}
             Run        : #${{ github.run_number }}
             Author     : ${{ github.actor }}
-
-            See attached PDF for the full test report with pass/fail summary and test case details.
-
-            Full Allure Report (interactive HTML):
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Full Allure Report: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
