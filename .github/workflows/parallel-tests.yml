@@ -180,12 +180,24 @@ jobs:
           path: allure-report/
           retention-days: 30
 
-      - name: Send report via email
+      - name: Check email secrets
+        id: email-check
         if: always()
+        run: |
+          if [ -n "${{ secrets.GMAIL_USERNAME }}" ] && [ -n "${{ secrets.GMAIL_PASSWORD }}" ] && [ -n "${{ secrets.EMAIL_RECIPIENT }}" ]; then
+            echo "ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "ready=false" >> $GITHUB_OUTPUT
+            echo "::warning::Email skipped — add GMAIL_USERNAME, GMAIL_PASSWORD, EMAIL_RECIPIENT in Settings → Secrets → Actions"
+          fi
+
+      - name: Send report via email
+        if: always() && steps.email-check.outputs.ready == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
+          secure: true
           username: ${{ secrets.GMAIL_USERNAME }}
           password: ${{ secrets.GMAIL_PASSWORD }}
           subject: "Parallel Test Report [tags=${{ inputs.tags }}] - Run #${{ github.run_number }}"

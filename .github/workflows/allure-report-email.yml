@@ -113,12 +113,24 @@ jobs:
         fi
       shell: bash
 
-    - name: Send Allure Report via Email with Logs
+    - name: Check email secrets
+      id: email-check
       if: always()
+      run: |
+        if [ -n "${{ secrets.GMAIL_USERNAME }}" ] && [ -n "${{ secrets.GMAIL_PASSWORD }}" ] && [ -n "${{ secrets.EMAIL_RECIPIENT }}" ]; then
+          echo "ready=true" >> $GITHUB_OUTPUT
+        else
+          echo "ready=false" >> $GITHUB_OUTPUT
+          echo "::warning::Email skipped — add GMAIL_USERNAME, GMAIL_PASSWORD, EMAIL_RECIPIENT in Settings → Secrets → Actions"
+        fi
+
+    - name: Send Allure Report via Email with Logs
+      if: always() && steps.email-check.outputs.ready == 'true'
       uses: dawidd6/action-send-mail@v3
       with:
         server_address: smtp.gmail.com
         server_port: 465
+        secure: true
         username: ${{ secrets.GMAIL_USERNAME }}
         password: ${{ secrets.GMAIL_PASSWORD }}
         subject: "✅ Allure Test Report - ${{ github.repository }} - Run #${{ github.run_number }}"
