@@ -180,6 +180,14 @@ jobs:
           path: allure-report/
           retention-days: 30
 
+      - name: Generate PDF Report
+        if: always()
+        continue-on-error: true
+        run: |
+          npm install puppeteer-core --prefix /tmp/pdf-deps --no-save --loglevel error
+          NODE_PATH=/tmp/pdf-deps/node_modules node .github/scripts/generate-pdf-report.js \
+            target/allure-results test-report-${{ github.run_number }}.pdf
+
       - name: Check email secrets
         id: email-check
         if: always()
@@ -203,6 +211,7 @@ jobs:
           subject: "Parallel Test Report [tags=${{ inputs.tags }}] - Run #${{ github.run_number }}"
           to: ${{ secrets.EMAIL_RECIPIENT }}
           from: ${{ secrets.GMAIL_USERNAME }}
+          attachments: test-report-${{ github.run_number }}.pdf
           body: |
             Parallel test execution completed.
 
@@ -213,7 +222,7 @@ jobs:
             Run       : #${{ github.run_number }}
             Author    : ${{ github.actor }}
 
-            Download Allure Report:
+            See attached PDF for the full test report with pass/fail summary and test case details.
+
+            Full Allure Report (interactive HTML):
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            → Go to the link above → Artifacts section → download parallel-allure-report.zip
-            → Extract and open allure-report/index.html in your browser.

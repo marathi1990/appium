@@ -124,6 +124,14 @@ jobs:
           [ -z "$(ls -A logs-archive)" ] && echo "No reports found" > logs-archive/INFO.txt
           cd logs-archive && zip -r ../regression1-report-${{ github.run_number }}.zip . -q
 
+      - name: Generate PDF Report
+        if: always()
+        continue-on-error: true
+        run: |
+          npm install puppeteer-core --prefix /tmp/pdf-deps --no-save --loglevel error
+          NODE_PATH=/tmp/pdf-deps/node_modules node .github/scripts/generate-pdf-report.js \
+            target/allure-results test-report-${{ github.run_number }}.pdf
+
       - name: Check email secrets
         id: email-check
         if: always()
@@ -147,6 +155,7 @@ jobs:
           subject: "Regression1 Test Report - Run #${{ github.run_number }} - ${{ github.repository }}"
           to: ${{ secrets.EMAIL_RECIPIENT }}
           from: ${{ secrets.GMAIL_USERNAME }}
+          attachments: test-report-${{ github.run_number }}.pdf
           body: |
             Regression1 test execution completed.
 
@@ -156,7 +165,7 @@ jobs:
             Run        : #${{ github.run_number }}
             Author     : ${{ github.actor }}
 
-            Download Allure Report:
+            See attached PDF for the full test report with pass/fail summary and test case details.
+
+            Full Allure Report (interactive HTML):
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            → Go to the link above → Artifacts section → download allure-html-report-regression1.zip
-            → Extract and open allure-report/index.html in your browser.

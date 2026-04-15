@@ -113,6 +113,14 @@ jobs:
         fi
       shell: bash
 
+    - name: Generate PDF Report
+      if: always()
+      continue-on-error: true
+      run: |
+        npm install puppeteer-core --prefix /tmp/pdf-deps --no-save --loglevel error
+        NODE_PATH=/tmp/pdf-deps/node_modules node .github/scripts/generate-pdf-report.js \
+          target/allure-results test-report-${{ github.run_number }}.pdf
+
     - name: Check email secrets
       id: email-check
       if: always()
@@ -133,92 +141,22 @@ jobs:
         secure: true
         username: ${{ secrets.GMAIL_USERNAME }}
         password: ${{ secrets.GMAIL_PASSWORD }}
-        subject: "✅ Allure Test Report - ${{ github.repository }} - Run #${{ github.run_number }}"
+        subject: "Test Report - ${{ github.repository }} - Run #${{ github.run_number }}"
         to: ${{ secrets.EMAIL_RECIPIENT }}
         from: ${{ secrets.GMAIL_USERNAME }}
+        attachments: test-report-${{ github.run_number }}.pdf
         body: |
-          Hi,
-
           Test execution completed for branch: ${{ github.ref_name }}
 
-          📋 EXECUTION DETAILS:
-          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           Repository: ${{ github.repository }}
-          Branch: ${{ github.ref_name }}
-          Commit: ${{ github.event.head_commit.message }}
-          Author: ${{ github.actor }}
-          Run: #${{ github.run_number }}
+          Branch    : ${{ github.ref_name }}
+          Author    : ${{ github.actor }}
+          Run       : #${{ github.run_number }}
 
-          🔗 LINKS:
-          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-          CI/CD Pipeline: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          See attached PDF for the full test report with pass/fail summary and test case details.
 
-          📦 DOWNLOAD ALLURE REPORT:
-          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          Full Allure Report (interactive HTML):
           ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          → Go to the link above → Artifacts section → download allure-report.zip
-          → Extract and open allure-report/index.html in your browser.
 
           ---
           Automated Test Report System
-        html_body: |
-          <html>
-          <body style="font-family: Arial, sans-serif; color: #333;">
-            <h2 style="color: #0366d6;">✅ Test Execution Complete</h2>
-
-            <div style="background-color: #f6f8fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
-              <h3>📋 Execution Details</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr style="border-bottom: 1px solid #e1e4e8;">
-                  <td style="padding: 8px; font-weight: bold;">Repository:</td>
-                  <td style="padding: 8px;">${{ github.repository }}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #e1e4e8;">
-                  <td style="padding: 8px; font-weight: bold;">Branch:</td>
-                  <td style="padding: 8px;">${{ github.ref_name }}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #e1e4e8;">
-                  <td style="padding: 8px; font-weight: bold;">Run Number:</td>
-                  <td style="padding: 8px;">#${{ github.run_number }}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #e1e4e8;">
-                  <td style="padding: 8px; font-weight: bold;">Author:</td>
-                  <td style="padding: 8px;">${{ github.actor }}</td>
-                </tr>
-              </table>
-            </div>
-
-            <div style="background-color: #fff3cd; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #ffc107;">
-              <h3 style="margin-top: 0;">📦 Attachments Included</h3>
-              <ul>
-                <li><strong>Allure Report</strong> - Interactive HTML test report with graphs and details</li>
-                <li><strong>Test Reports</strong> - XML test results from Maven Surefire</li>
-                <li><strong>Log Files</strong> - Application and build logs</li>
-              </ul>
-            </div>
-
-            <div style="background-color: #e8f4f8; padding: 15px; border-radius: 6px; margin: 15px 0;">
-              <h3>🚀 How to View the Report</h3>
-              <ol>
-                <li>Download the attached <code>test-logs-${{ github.run_number }}.zip</code></li>
-                <li>Extract the ZIP file to a folder</li>
-                <li>Open <code>allure-report/index.html</code> in your web browser</li>
-              </ol>
-            </div>
-
-            <div style="background-color: #f6f8fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
-              <h3>🔗 Quick Links</h3>
-              <ul>
-                <li><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Full Workflow Run</a></li>
-                <li><a href="${{ github.event.head_commit.url }}">View Code Changes</a></li>
-                <li><a href="${{ github.server_url }}/${{ github.repository }}/actions">View All Runs</a></li>
-              </ul>
-            </div>
-
-            <hr style="border: none; border-top: 1px solid #e1e4e8; margin: 20px 0;">
-            <footer style="color: #999; font-size: 12px;">
-              <p>This is an automated email from the CI/CD pipeline. Do not reply to this email.</p>
-              <p>Report generated at: $(date)</p>
-            </footer>
-          </body>
-          </html>
