@@ -49,6 +49,7 @@ RESET='\033[0m'
 
 APK_PATH="${1}"
 VERSION="${2:-$(date '+v%Y-%m-%d')}"
+APK_NAME="$(basename "$APK_PATH")"
 
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════╗${RESET}"
@@ -132,6 +133,7 @@ HTTP_STATUS=$(curl -s -o /tmp/gh_response.txt -w "%{http_code}" \
     \"event_type\": \"${GITHUB_EVENT}\",
     \"client_payload\": {
       \"display_version\": \"${VERSION}\",
+      \"apk_name\": \"${APK_NAME}\",
       \"triggered_by\": \"upload-and-test-script\"
     }
   }")

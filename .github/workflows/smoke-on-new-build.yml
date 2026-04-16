@@ -40,10 +40,12 @@ jobs:
           VERSION="${{ github.event.client_payload.display_version }}"
           BUILD_NUM="${{ github.event.client_payload.build_version }}"
           TRIGGER="${{ github.event.client_payload.triggered_by }}"
-          echo "version=${VERSION:-latest}"    >> $GITHUB_OUTPUT
-          echo "build=${BUILD_NUM:-N/A}"       >> $GITHUB_OUTPUT
-          echo "trigger=${TRIGGER:-manual}"    >> $GITHUB_OUTPUT
-          echo "New build detected: v${VERSION:-latest} (build ${BUILD_NUM:-N/A})"
+          APK_NAME="${{ github.event.client_payload.apk_name }}"
+          echo "version=${VERSION:-latest}"              >> $GITHUB_OUTPUT
+          echo "build=${BUILD_NUM:-N/A}"                 >> $GITHUB_OUTPUT
+          echo "trigger=${TRIGGER:-manual}"              >> $GITHUB_OUTPUT
+          echo "apk_name=${APK_NAME:-${VERSION:-latest}}" >> $GITHUB_OUTPUT
+          echo "New build detected: v${VERSION:-latest} (build ${BUILD_NUM:-N/A}) APK: ${APK_NAME}"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -135,7 +137,7 @@ jobs:
         if: always()
         continue-on-error: true
         env:
-          BUILD_VERSION: ${{ steps.build.outputs.version }}
+          BUILD_VERSION: ${{ steps.build.outputs.apk_name }}
         run: |
           npm install puppeteer-core --prefix /tmp/pdf-deps --no-save --loglevel error
           NODE_PATH=/tmp/pdf-deps/node_modules node .github/scripts/generate-pdf-report.js \
