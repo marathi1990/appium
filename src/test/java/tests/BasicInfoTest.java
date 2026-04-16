@@ -81,7 +81,7 @@ public class BasicInfoTest extends BaseTest {
         Thread.sleep(2000);
 
         myHealthPage.navigateToMyHealth();
-        System.out.println("✅ Navigated to MyHealth");
+        System.out.println("✅ Navigated to MyHealth ");
         Thread.sleep(2000);
 
         myHealthPage.navigateToBasicInfo();

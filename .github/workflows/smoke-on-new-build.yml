@@ -87,6 +87,14 @@ jobs:
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: mvn compile exec:java -Dexec.mainClass="utils.FirebaseAppDistributionManager" -pl .
 
+      - name: Detect downloaded APK name
+        id: apk
+        run: |
+          APK_FILE=$(find app/ -name "*.apk" | head -1)
+          APK_NAME=$(basename "$APK_FILE")
+          echo "name=${APK_NAME}" >> $GITHUB_OUTPUT
+          echo "Detected APK: $APK_NAME"
+
       # ── Run smoke suite ──────────────────────────────────────────
       - name: Run smoke tests
         uses: reactivecircus/android-emulator-runner@v2
@@ -113,7 +121,7 @@ jobs:
         run: |
           mkdir -p target/allure-results
           {
-            echo "Build=${{ steps.build.outputs.apk_name }}"
+            echo "Build=${{ steps.apk.outputs.name }}"
             echo "Branch=${{ github.ref_name }}"
             echo "Run=#${{ github.run_number }}"
             echo "Triggered By=${{ steps.build.outputs.trigger }}"
@@ -149,7 +157,7 @@ jobs:
         if: always()
         continue-on-error: true
         env:
-          BUILD_VERSION: ${{ steps.build.outputs.apk_name }}
+          BUILD_VERSION: ${{ steps.apk.outputs.name }}
         run: |
           npm install puppeteer-core --prefix /tmp/pdf-deps --no-save --loglevel error
           NODE_PATH=/tmp/pdf-deps/node_modules node .github/scripts/generate-pdf-report.js \
