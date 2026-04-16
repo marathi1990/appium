@@ -21,13 +21,14 @@ const resultsDir = process.argv[2] || 'target/allure-results';
 const outputPdf  = process.argv[3] || 'test-report.pdf';
 const tmpHtml    = outputPdf.replace(/\.pdf$/i, '.html');
 
-const RUN_NUMBER = process.env.GITHUB_RUN_NUMBER || 'N/A';
-const REPO       = process.env.GITHUB_REPOSITORY || 'N/A';
-const BRANCH     = process.env.GITHUB_REF_NAME   || 'N/A';
-const ACTOR      = process.env.GITHUB_ACTOR      || 'N/A';
-const SERVER     = process.env.GITHUB_SERVER_URL || '';
-const RUN_ID     = process.env.GITHUB_RUN_ID     || '';
-const RUN_URL    = SERVER && REPO && RUN_ID
+const RUN_NUMBER    = process.env.GITHUB_RUN_NUMBER || 'N/A';
+const REPO          = process.env.GITHUB_REPOSITORY || 'N/A';
+const BRANCH        = process.env.GITHUB_REF_NAME   || 'N/A';
+const ACTOR         = process.env.GITHUB_ACTOR      || 'N/A';
+const SERVER        = process.env.GITHUB_SERVER_URL || '';
+const RUN_ID        = process.env.GITHUB_RUN_ID     || '';
+const BUILD_VERSION = process.env.BUILD_VERSION     || '';
+const RUN_URL       = SERVER && REPO && RUN_ID
   ? `${SERVER}/${REPO}/actions/runs/${RUN_ID}` : '';
 
 // ── Parse Allure results ──────────────────────────────────────────────────────
@@ -178,6 +179,7 @@ const html = `<!DOCTYPE html>
       <table cellpadding="0" cellspacing="0">
         <tr style="color:white;font-size:11px;opacity:0.88">
           <td style="padding-right:18px">&#9658; Run <strong>#${RUN_NUMBER}</strong></td>
+          ${BUILD_VERSION ? `<td style="padding-right:18px">&#9658; Build: <strong>${esc(BUILD_VERSION)}</strong></td>` : ''}
           <td style="padding-right:18px">&#9658; ${esc(REPO)}</td>
           <td style="padding-right:18px">&#9658; Branch: <strong>${esc(BRANCH)}</strong></td>
           <td style="padding-right:18px">&#9658; By: <strong>${esc(ACTOR)}</strong></td>

@@ -59,7 +59,7 @@ public class BasicInfoTest extends BaseTest {
         Thread.sleep(2000);
         basicInfoPage.verifyBasicInfoFieldsEditability();
 
-        System.out.println("All field editability checks completed successfully");
+        System.out.println("All field editability checks completed successfully!!");
     }
 
 

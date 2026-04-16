@@ -426,6 +426,8 @@ jobs:
       - name: Generate PDF Report
         if: always()
         continue-on-error: true
+        env:
+          BUILD_VERSION: ${{ github.event.client_payload.display_version || github.ref_name }}
         run: |
           npm install puppeteer-core --prefix /tmp/pdf-deps --no-save --loglevel error
           NODE_PATH=/tmp/pdf-deps/node_modules node .github/scripts/generate-pdf-report.js \
