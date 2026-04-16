@@ -55,7 +55,7 @@ public class BasicInfoTest extends BaseTest {
         basicInfoPage.clickEdit();
         basicInfoPage.scrollDowntilleditdone();
         Thread.sleep(2000);
-        System.out.println("✅ Clicked Edit, verifying field editability...");
+        System.out.println("✅  Clicked Edit, verifying field editability...");
         Thread.sleep(2000);
         basicInfoPage.verifyBasicInfoFieldsEditability();
 

@@ -107,6 +107,18 @@ jobs:
           APPIUM_SERVER_URL: http://127.0.0.1:4723
         continue-on-error: true
 
+      # ── Write Allure environment info ───────────────────────────
+      - name: Write Allure environment properties
+        if: always()
+        run: |
+          mkdir -p target/allure-results
+          {
+            echo "Build=${{ steps.build.outputs.apk_name }}"
+            echo "Branch=${{ github.ref_name }}"
+            echo "Run=#${{ github.run_number }}"
+            echo "Triggered By=${{ steps.build.outputs.trigger }}"
+          } > target/allure-results/environment.properties
+
       # ── Upload raw Allure results (for history / debugging) ──────
       - name: Upload Allure results
         uses: actions/upload-artifact@v4
